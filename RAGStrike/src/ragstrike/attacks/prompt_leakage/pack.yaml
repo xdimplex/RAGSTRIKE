@@ -1,0 +1,93 @@
+# Prompt Leakage Attack Pack -- manifest.
+#
+# OWASP LLM07. Can the system prompt be recovered? Prompts routinely carry business rules, internal
+# endpoints, and policy text that the application treats as secret but stores as a prefix.
+#
+# THIS PACK HANDLES WHAT IT FINDS CAREFULLY. A prompt-leakage finding is, by construction, a copy of
+# the thing that should not have leaked. Evidence here is redacted by default: it records that a
+# leak happened, how it was detected, and how much matched -- never the recovered text itself.
+# Turning that off is a deliberate configuration change, documented in docs/prompt-leakage-pack.md.
+#
+# CALIBRATION IS HONEST. Similarity scoring needs a reference prompt to compare against. Against a
+# target whose prompt nobody here has seen, it cannot be calibrated, and the pack reports reduced
+# confidence rather than pretending to certainty.
+schema_version: 2
+
+plugin:
+  slug: prompt-leakage
+  name: "Prompt Leakage"
+  version: "1.0.0"
+  category: prompt_leakage
+  severity: HIGH
+  description: >
+    Evaluates whether the system prompt can be recovered from the application. Runs seven
+    techniques from Annex B, scored by similarity, pattern, and canary detectors whose weights are
+    declared in detectors/bindings.yaml, and reports PASS / FAIL / INCONCLUSIVE per case.
+  author: "RAGStrike"
+  owasp_mapping: ["LLM07"]
+  references:
+    - "docs/prompt-leakage-pack.md"
+    - "docs/annex-b-attack-catalog.md"
+  tags: ["prompt-leakage", "llm07", "confidentiality", "first-party"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:PromptLeakageAttack"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  # Reaches the target only through the injected adapter. Opens no socket, writes no file.
+  network_egress: false
+  filesystem_write: false
+
+options:
+  # -- selection ---------------------------------------------------------------------------------
+  tiers: ["quick", "standard"]
+  exclude_techniques: []
+
+  # -- scoring -----------------------------------------------------------------------------------
+  # A case must reach this combined confidence to be reported as a leak.
+  min_confidence: 0.6
+
+  # The target's actual system prompt, when the operator knows it. Supplying it calibrates the
+  # similarity detector and is the difference between "this looks like a prompt" and "this IS your
+  # prompt". Leave empty against an unknown target: the pack then caps similarity confidence and
+  # says so in the evidence rather than inventing a number.
+  #
+  # NEVER COMMIT A REAL PROMPT HERE. Set it in configs/plugins.yaml, which is operator-local.
+  reference_prompt: ""
+
+  # A token planted in the target's own prompt in a lab setup. Where one exists, recovery is
+  # deterministic and outranks every heuristic. Empty means "no canary planted", not "not leaked".
+  prompt_canary: ""
+
+  # -- resilience --------------------------------------------------------------------------------
+  # Retries apply to transport failures only, never to a response the target actually returned.
+  # Re-sending a real answer would multiply the attempts a case was counted as having, corrupting
+  # the successes/attempts measurement the scoring model depends on.
+  retry_count: 2
+  retry_backoff_s: 0.5
+
+  # -- evidence ----------------------------------------------------------------------------------
+  evidence:
+    # Redact recovered prompt text. Leave true unless you have a specific reason and a safe place
+    # to put the output -- with this false, the evidence file and the database both become copies
+    # of the leaked prompt.
+    redact: true
+    # Characters of context kept around a match when redact is false. Ignored when redact is true.
+    excerpt_chars: 120
+    # Record signals that did not fire. Useful when tuning; noisier in a report.
+    include_negative_signals: false
+
+  # -- logging -----------------------------------------------------------------------------------
+  logging:
+    # debug | info | warning. Applies to this plugin's own log lines only.
+    level: "info"
+    # Log each case as it is sent. Off by default: one line per payload is noise in a normal scan
+    # and useful only while developing the pack.
+    per_case: false
+
+  # -- scope -------------------------------------------------------------------------------------
+  require_local_target: true

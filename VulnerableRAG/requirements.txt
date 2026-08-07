@@ -1,0 +1,42 @@
+# --------------------------------------------------------------------------------------------------
+# VulnerableRAG -- RUNTIME dependencies
+#
+# PURPOSE
+#   What both profiles need to run. Identical for VulnerableRAG and SecureRAG -- the two applications
+#   differ only in their security policy chain, never in their dependencies.
+#
+# INSTALL
+#   pip install -r requirements.txt
+# --------------------------------------------------------------------------------------------------
+
+# ---- API ------------------------------------------------------------------------------------------
+fastapi>=0.110              # The HTTP surface RAGStrike attacks. Also what the `http` target adapter maps onto.
+uvicorn[standard]>=0.29     # ASGI server.
+python-multipart>=0.0.9     # Multipart parsing for PDF upload -- the ingestion attack surface.
+
+# ---- Validation -----------------------------------------------------------------------------------
+pydantic>=2.6               # Request/response models.
+pydantic-settings>=2.2      # Environment configuration.
+pyyaml>=6.0                 # Config files and the corpus provenance manifest.
+
+# ---- Retrieval ------------------------------------------------------------------------------------
+chromadb>=0.5               # The vector store. THIS is where embeddings live -- never SQLite, which
+                            # has no vector index and would mean full scans over float blobs.
+pypdf>=4.2                  # PDF text extraction. Note that it also reads METADATA fields, which is
+                            # exactly the surface the metadata-injection attack targets.
+langchain-text-splitters>=0.2  # RecursiveCharacterTextSplitter. The one piece of LangChain this lab
+                            # uses: it tries paragraph, then line, then sentence boundaries, so chunks
+                            # break at natural points. That matters here -- a chunker that splits
+                            # mid-sentence produces garbled context even when nothing malicious
+                            # happened, which makes real injections harder to spot. LangChain's Chroma
+                            # and LLM wrappers are deliberately NOT used: the pipeline stays a thin,
+                            # readable path from PDF to answer, which is the point of a teaching lab.
+
+# ---- Relational storage ---------------------------------------------------------------------------
+aiosqlite>=0.20             # Documents, chunk metadata and provenance, sessions, message history.
+                            # Chunk provenance matters: RAGStrike's retrieval-integrity pack verifies
+                            # returned chunks against it.
+
+# ---- Model ----------------------------------------------------------------------------------------
+httpx>=0.27                 # Ollama client. Qwen3 by default, pinned by tag in Compose -- an
+                            # unpinned tag silently breaks reproducibility of every scan result.

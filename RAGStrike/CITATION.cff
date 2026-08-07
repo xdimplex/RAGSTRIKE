@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "RAGStrike: An Extensible Offensive Security Evaluation Framework for RAG Systems"
+message: "If you use this software, please cite it as below."
+type: software
+license: Apache-2.0
+version: 1.0.0
+date-released: 2026-07-31
+repository-code: "https://github.com/OWNER/ragstrike"
+abstract: >-
+  RAGStrike is an extensible offensive security evaluation framework for
+  retrieval-augmented generation systems. Attack packs are discovered from a
+  manifest rather than registered in code; detection is deterministic and
+  canary-based rather than model-judged; risk scores are arithmetic a reader can
+  reproduce by hand; and remediation text is retrieved from a reviewed catalog
+  rather than generated. It ships with a differential lab -- VulnerableRAG and
+  SecureRAG -- so that the scanner's own true-positive and false-positive
+  behaviour can be measured rather than assumed.
+keywords:
+  - retrieval-augmented generation
+  - large language models
+  - prompt injection
+  - security testing
+  - OWASP LLM Top 10
+authors:
+  - family-names: Patil
+    given-names: Digvijay

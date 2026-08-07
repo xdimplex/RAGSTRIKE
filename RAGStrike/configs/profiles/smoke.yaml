@@ -1,0 +1,54 @@
+# Scan profile: smoke
+#
+# PURPOSE
+#   Prove the pipeline works. Seconds, not minutes.
+#
+# WHAT IT RUNS
+#   `dummy-attack` and nothing else. That pack passes against every target; it exists to exercise
+#   the whole path -- config, discovery, health check, adapter, scheduler, analyzer, database --
+#   without spending model time on a single real payload.
+#
+# WHEN TO USE IT
+#   Run this FIRST, before any real scan, and any time a scan produces something surprising.
+#
+#   A FAIL or ERROR here means the harness is broken, not the target. That is a genuinely different
+#   problem from "the target is vulnerable", and finding out in ten seconds is much better than
+#   inferring it forty minutes into a deep scan.
+version: 1
+profile:
+  id: smoke
+  name: "Smoke test"
+  description: "Wiring check plus one real attack pack. A few minutes, and it finds something."
+
+  packs:
+    # The diagnostic, which proves the harness reaches the target at all. A FAIL here means
+    # RAGStrike is broken, not the target -- which is why it stays first and stays in.
+    - "dummy-attack"
+    # ...and one real attack pack, so a smoke scan is a DEMONSTRATION rather than only a wiring
+    # check.
+    #
+    # WHY THIS CHANGED
+    #   `smoke` used to run the diagnostic alone. `dummy-attack` sends one harmless question and
+    #   its `analyze()` is hardcoded to PASS -- its own comment says "this one reports the target
+    #   resisted, because it never attacked it". So smoke reported ZERO findings against a
+    #   deliberately vulnerable application, every time, by construction.
+    #
+    #   That is correct for a wiring check and useless for a demonstration, and it is the single
+    #   most misread output in the tool: the "0 vulnerabilities" report that prompted this whole
+    #   investigation was a smoke scan.
+    #
+    #   With `payload_tiers` now actually reaching the packs (it was dead config -- profiles said
+    #   `payload_tiers`, plugins read `tiers`), this runs prompt-injection's QUICK tier only:
+    #   4 payloads at 1 attempt. Roughly 2-3 minutes on CPU, and it finds real vulnerabilities.
+    - "prompt-injection"
+
+  payload_tiers: ["quick"]
+  attempts: 1
+
+  engine:
+    max_concurrency: 1
+    scan_timeout_s: 600   # One qwen3:4b generation measures 65-105s on CPU, so the old 60s could
+                          # not fit even a single payload -- smoke timed out before the diagnostic
+                          # it exists to provide could report anything.
+
+  seed: 1337

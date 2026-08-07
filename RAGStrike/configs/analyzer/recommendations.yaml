@@ -1,0 +1,103 @@
+# Analyzer recommendation catalog.
+#
+# ADVICE IS RETRIEVED, NEVER GENERATED (ADR-012). Every string here was written once, by a person,
+# and is looked up. A model composing remediation at report time would produce text that varies
+# between identical runs and that nobody reviewed before it reached an operator.
+#
+# THIS DOES NOT REPLACE A PACK'S OWN CATALOG. A pack that ships precise advice for its own failure
+# modes keeps it -- the pack knows those modes better than a severity-keyed default ever could. This
+# file is the fallback for plugins that ship none, and the single place an operator can override all
+# of them from.
+#
+# LOOKUP ORDER: plugin -> category -> severity -> default. Most specific wins.
+version: 1
+locale: "en"
+
+by_plugin:
+  # Deliberately empty by default. The three first-party packs each ship their own catalog keyed by
+  # technique or failure reason, which is more precise than anything that could be written here.
+  # Add an entry to override a specific pack's advice for your environment.
+
+by_category:
+  prompt_injection:
+    title: "Separate instructions from data at the API boundary"
+    remediation: >
+      Put system instructions in a dedicated system role and never concatenate user or retrieved
+      text into it. Re-assert the grounding rule after the untrusted span rather than before it.
+      Prompt-level pleading ("never ignore these instructions") is not a control -- it travels the
+      same channel as the attack.
+    effort: "MEDIUM"
+    references:
+      - "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+
+  prompt_leakage:
+    title: "Treat the system prompt as configuration, not as a secret"
+    remediation: >
+      The durable fix is to stop the prompt being worth protecting: move business rules, endpoints,
+      and policy decisions into code the model never sees, so recovering the prompt yields
+      instructions rather than intelligence. Filtering disclosure is a mitigation and will always be
+      partial -- paraphrase and translation are unbounded.
+    effort: "HIGH"
+    references:
+      - "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+
+  context_poisoning:
+    title: "Treat the corpus as an untrusted input channel"
+    remediation: >
+      Anything that can write to the vector store can influence every future answer, for every user.
+      Gate ingestion behind the review a code change gets, record provenance for every document, and
+      verify at query time that each retrieved chunk traces to a document you meant to have.
+    effort: "HIGH"
+    references:
+      - "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+
+  evaluation:
+    title: "Investigate the expected behaviour that did not hold"
+    remediation: >
+      An evaluation check failed, meaning a security property the application is supposed to have
+      was not observed. Start from the specific check's own documentation -- it names what it
+      expected and what it saw.
+    effort: "MEDIUM"
+
+by_severity:
+  CRITICAL:
+    title: "Fix before this reaches production"
+    remediation: >
+      A critical finding is reproducible and high-impact. Treat it as a release blocker: the
+      combination of severity and confidence here means it is not a theoretical risk.
+    effort: "HIGH"
+
+  HIGH:
+    title: "Schedule a fix in the current cycle"
+    remediation: >
+      A high-severity finding with supporting evidence. It does not need to be fixed today, but it
+      should not survive the sprint.
+    effort: "MEDIUM"
+
+  MEDIUM:
+    title: "Add to the backlog with the evidence attached"
+    remediation: >
+      Worth fixing, not worth interrupting anyone for. Attach this finding's evidence so whoever
+      picks it up does not have to reproduce the scan first.
+    effort: "MEDIUM"
+
+  LOW:
+    title: "Review, then accept or fix"
+    remediation: >
+      Low severity or low confidence. Read the evidence and decide -- some low findings are genuinely
+      minor, and some are undetermined results that would be worth re-running with better
+      configuration.
+    effort: "LOW"
+
+  INFO:
+    title: "No action required"
+    remediation: >
+      Informational. Recorded so the scan's coverage is visible, not because anything needs doing.
+    effort: "LOW"
+
+default:
+  title: "Review this finding"
+  remediation: >
+    No catalog entry matched this plugin, category, or severity. Add one here so future findings of
+    this kind carry actionable advice rather than this placeholder.
+  effort: "MEDIUM"

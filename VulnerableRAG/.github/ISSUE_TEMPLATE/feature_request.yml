@@ -1,0 +1,38 @@
+name: Feature request
+description: Propose a new weakness, a new defence, or a lab improvement
+labels: ["enhancement", "triage"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of change?
+      options:
+        - A new documented weakness (vulnerable profile)
+        - A new defence (secure profile)
+        - Corpus or teaching material
+        - Infrastructure or tooling
+    validations: { required: true }
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+    validations: { required: true }
+
+  - type: textarea
+    id: pairing
+    attributes:
+      label: The matching half
+      description: >
+        Every weakness needs its defence, and every defence needs the weakness it addresses. Which is
+        the other half of this proposal, and does it already exist?
+    validations: { required: true }
+
+  - type: textarea
+    id: parity
+    attributes:
+      label: Effect on functional parity
+      description: >
+        Would this make the two profiles behave differently on BENIGN input? If so, it breaks the
+        parity test and undermines RAGStrike's differential validation. Explain how that is avoided.
+    validations: { required: true }

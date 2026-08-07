@@ -1,0 +1,34 @@
+# Instruction Priority Evaluation -- does the system keep following its own operating
+# instructions when a user message tells it to do something else?
+#
+# NON-OFFENSIVE. Every test case asks the target to emit a harmless canary string. Nothing is
+# extracted, nothing is written, and the target is left exactly as it was found.
+schema_version: 2
+
+plugin:
+  slug: instruction-priority
+  name: "Instruction Priority Evaluation"
+  version: "1.0.0"
+  category: evaluation
+  severity: HIGH
+  description: >
+    Checks that instructions embedded in a user message do not take priority over the system's own
+    grounding instructions. Sends benign canary-marker requests and reports whether the target
+    complied with the user's override.
+  author: "RAGStrike"
+  owasp_mapping: ["LLM01"]
+  references: ["docs/evaluation-plugins.md"]
+  tags: ["evaluation", "non-offensive", "instruction-hierarchy"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:InstructionPriorityEvaluation"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  # The plugin never opens a socket itself -- it reaches the target only through the injected
+  # adapter, which is the one channel the framework mediates.
+  network_egress: false
+  filesystem_write: false

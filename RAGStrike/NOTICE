@@ -1,0 +1,47 @@
+RAGStrike
+Copyright 2026 Digvijay Patil
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+--------------------------------------------------------------------------------
+
+THIRD-PARTY SOFTWARE
+
+This product does not bundle, vendor, or redistribute third-party source code.
+All dependencies are resolved at install time from their own distributions and
+remain under their own licences. A full review, including the two entries that
+warrant explanation, is in docs/license-review.md.
+
+--------------------------------------------------------------------------------
+
+STANDARDS AND TAXONOMIES
+
+This product references identifiers from the OWASP Top 10 for LLM Applications
+(CC BY-SA 4.0), MITRE ATLAS, and CWE. Identifiers are referenced; none of the
+underlying text is reproduced.
+
+--------------------------------------------------------------------------------
+
+MODELS
+
+The lab applications use Qwen3 and nomic-embed-text through Ollama. Neither
+model is distributed with this product; each is obtained by the operator under
+its own licence.
+
+--------------------------------------------------------------------------------
+
+INTENDED USE
+
+RAGStrike is an offensive security evaluation tool. It is intended for use
+against systems you own or have written authorisation to test. By default it
+accepts only local targets (127.0.0.1, localhost) and requires a persisted
+authorisation record before any scan runs. See SECURITY.md.

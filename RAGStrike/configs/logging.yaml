@@ -1,0 +1,55 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike -- logging reference
+#
+# The engine configures logging from the `logging:` block in config.yaml, which is what cli/main.py
+# reads at startup. This file documents the resulting behaviour and the sinks, so an operator can
+# see what is written where without reading the setup code.
+#
+# WHY LOGURU BEHIND STDLIB
+#   Application modules use `logging.getLogger(__name__)`; an InterceptHandler routes those records
+#   into Loguru. That keeps the backend replaceable and, more importantly, keeps ragstrike.logging
+#   out of the import graph of the engine -- it is Layer 3 infrastructure, and Layer 2 code
+#   importing it would break the dependency rule. Only the CLI imports it, once.
+# --------------------------------------------------------------------------------------------------
+version: 1
+
+sinks:
+  console:
+    # Human-readable, colourised. Suppressed by commands that render their own tables.
+    level: INFO
+    format: "HH:mm:ss LEVEL logger  message  key=value"
+
+  application:
+    # Everything, as JSON lines, so jq works instead of regex.
+    path: "logs/ragstrike.log"
+    level: INFO
+    rotation: "10 MB"
+    retention: 5
+    serialize: true
+
+  errors:
+    # WARNING and above with tracebacks. This is the file to attach to a bug report.
+    path: "logs/errors.log"
+    level: WARNING
+    rotation: "5 MB"
+    retention: 10
+    serialize: true
+    backtrace: true
+
+# What Phase 3 logs.
+events:
+  - scan started          # scan_id, target, adapter, url
+  - plugin loaded         # slug, plugin_version, category, source
+  - plugin rejected       # slug, reason, detail
+  - target reachable      # latency_ms, detail
+  - scan planned          # runnable, skipped, capabilities
+  - plugin executing      # scan_id, slug, payloads
+  - plugin executed       # scan_id, slug, outcome, elapsed_ms
+  - scan finished         # counters, coverage, elapsed_ms
+  - scan failed           # scan_id, error
+
+# RESERVED KEYS
+#   `extra=` fields colliding with a LogRecord attribute raise at the call site. `name` and
+#   `filename` are the two that bite, because they are the obvious words for a plugin name and a
+#   file name. Use `slug` and `source_name`.
+reserved_extra_keys: [name, filename, module, args, msg, levelname, pathname, lineno, funcName]

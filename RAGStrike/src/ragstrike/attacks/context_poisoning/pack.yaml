@@ -1,0 +1,75 @@
+# Context Poisoning Evaluation Pack -- manifest.
+#
+# OWASP LLM04 / LLM08. Does retrieval return what it should, and only what it should?
+#
+# THIS IS AN EVALUATION MODULE, NOT AN ACTIVE POISONING PACK.
+#   The Phase 1 scaffold sketched a pack that ingests poisoned documents, re-queries, and cleans up
+#   afterwards. Phase 9 deliberately scopes that down: this pack never writes to the target. It
+#   asks questions from a prepared dataset and compares what retrieval actually returned against
+#   what the dataset says it should have.
+#
+#   The security property under test is unchanged -- whether adversarial content in the corpus can
+#   steer answers -- but the corpus state is *declared* by the dataset rather than *created* by the
+#   pack. In the lab, an operator ingests corpus/poisoned/ as a deliberate exercise and then runs
+#   the matching dataset; the pack detects the effect without ever having caused it.
+#
+#   Consequence worth stating plainly: this pack cannot prove persistence across sessions, because
+#   proving that requires mutating the corpus. See docs/context-poisoning-pack.md.
+#
+# NO EXTERNAL-TARGET ESCAPE HATCH. Unlike the injection and leakage packs, this one has no
+# `require_local_target` option. The Phase 9 brief requires that configuration to enable external
+# targets not exist here, so the loopback refusal is unconditional in code rather than a default
+# an operator can flip.
+schema_version: 2
+
+plugin:
+  slug: context-poisoning
+  name: "Context Poisoning"
+  version: "1.0.0"
+  category: context_poisoning
+  severity: HIGH
+  description: >
+    Evaluates whether retrieval returns the sources a prepared dataset expects, excludes the ones
+    it forbids, and cites only what it retrieved. Dataset-driven and strictly read-only.
+  author: "RAGStrike"
+  owasp_mapping: ["LLM04", "LLM08"]
+  references:
+    - "docs/context-poisoning-pack.md"
+    - "docs/annex-b-attack-catalog.md"
+  tags: ["context-poisoning", "llm04", "llm08", "retrieval-integrity", "first-party"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:ContextPoisoningAttack"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  # Read-only by construction. The pack reaches the target only through the injected adapter's
+  # chat operation -- there is no ingest, no upload, no delete on this path.
+  network_egress: false
+  filesystem_write: false
+
+options:
+  # -- datasets ----------------------------------------------------------------------------------
+  # Where evaluation datasets live. A relative path resolves against the pack directory; an
+  # absolute path lets an operator keep site-specific datasets outside the distribution.
+  dataset_location: "datasets"
+  # Which datasets to run, by dataset_id. Empty means every dataset found.
+  datasets: []
+
+  # -- scoring -----------------------------------------------------------------------------------
+  min_confidence: 0.6
+
+  # -- evidence ----------------------------------------------------------------------------------
+  evidence:
+    # Characters of the observed response recorded per case. Retrieval findings need enough of the
+    # answer to be reviewable; the full text of every response would bloat every stored scan.
+    response_chars: 240
+    include_negative_signals: false
+
+  # -- logging -----------------------------------------------------------------------------------
+  logging:
+    level: "info"
+    per_case: false

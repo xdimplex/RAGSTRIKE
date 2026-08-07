@@ -1,0 +1,65 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike -- installation defaults
+#
+# PURPOSE
+#   Precedence level 2 of 6.  These values apply unless a scan profile, a target file, an environment
+#   variable, or an explicit CLI/API argument overrides them (SDD 21.1).
+#
+# THIS IS THE FILE THE LOADER READS.
+#   Until Phase 16 it was not.  The design named this file from Phase 1; the implementation read a
+#   second file, `config.yaml`; nobody reconciled them.  Editing this file therefore did nothing at
+#   all, silently -- and its keys had drifted too (`local_pack_dirs`, `database_url`, `redact_secrets`
+#   are not fields the schema has ever had).  `config.yaml` is gone.  The loader still accepts it with
+#   a deprecation warning so an existing checkout keeps working, and stops accepting it at 2.0.
+#
+# EVERY KEY HERE IS VALIDATED.
+#   `extra="forbid"` is set on every settings model, so a misspelled key is a startup error naming the
+#   exact field path rather than a value that is silently ignored.  If you add a key here, add it to
+#   `core/config/models.py` in the same change -- that is now enforced, not merely asked for.
+#
+# WHAT IS NOT HERE
+#   Analyzer rules, scoring weights, and recommendation catalogs live in `configs/analyzer/`.  Report
+#   settings live in `configs/reporting/`.  Scan depth lives in `configs/profiles/`.  This file is
+#   engine wiring only.
+#
+# NEVER PUT A SECRET IN THIS FILE.  It is committed.  Secrets come from the environment -- see
+# `.env.example`, and `options.auth` in `targets.yaml` for target credentials.
+# --------------------------------------------------------------------------------------------------
+version: 1
+
+engine:
+  max_concurrency: 4              # bounded semaphore; the workload is I/O-bound
+  max_qps: 2.0                    # token bucket ceiling -- see the note under `safety`
+  probe_timeout_s: 60
+  case_timeout_s: 180
+  scan_timeout_s: 3600            # wall-clock budget; a partial scored result beats an infinite scan
+  retry:
+    max_attempts: 3               # transport, 429, and 5xx only -- a refusal is data, never retried
+    backoff_base_s: 1.0
+    backoff_max_s: 30.0
+    jitter: true
+
+plugins:
+  entry_point_group: "ragstrike.attack_packs"
+  local_dirs: ["./plugins", "./packs", "./src/ragstrike/attacks"]
+  disabled: []
+  allow_elevated_permissions: false   # packs asking for network or filesystem access are refused
+
+storage:
+  database_path: "./data/scans.db"
+  reports_dir: "./reports"
+
+safety:
+  # The shipped defaults mean a fresh install can only reach this machine.  Pointing RAGStrike at
+  # anything else takes two deliberate steps -- flipping `allow_remote_targets` AND adding an
+  # allowlist entry -- because accidentally scanning a third party is an incident (ADR-017).
+  # The rate limiter above has no disable path: every request to an LLM endpoint has real cost.
+  require_authorization: true
+  allow_remote_targets: false
+  allowed_hosts: ["localhost", "127.0.0.1", "::1"]
+
+logging:
+  level: INFO
+  log_dir: "./logs"
+  json_lines: true
+  console: true

@@ -1,0 +1,28 @@
+# CODEOWNERS -- review ownership.
+#
+# PURPOSE
+#   Route review to the people who own each subsystem, and guarantee that the load-bearing parts of
+#   the architecture cannot be changed without an owner looking at it.
+#
+# Replace the placeholder handles before the first public release.
+
+# Default
+*                                   @OWNER
+
+# Architecture -- the source of truth. A change here changes every later phase.
+/docs/                              @OWNER
+/ARCHITECTURE.md                    @OWNER
+
+# The dependency rule. If this file weakens, the architecture is decorative.
+/.importlinter                      @OWNER
+
+# The plugin contract. A breaking change here breaks every third-party pack (ADR-015).
+/src/ragstrike/plugins/base/        @OWNER
+/src/ragstrike/core/contracts/      @OWNER
+
+# The scoring model. Changing a weight changes every historical comparison.
+/src/ragstrike/core/scoring/        @OWNER
+/configs/scoring/                   @OWNER
+
+# Safety controls -- authorization gate, rate limiter, host allowlist.
+/SECURITY.md                        @OWNER

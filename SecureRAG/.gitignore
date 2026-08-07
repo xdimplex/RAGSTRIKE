@@ -1,0 +1,59 @@
+# --------------------------------------------------------------------------------------------------
+# VulnerableRAG -- .gitignore
+#
+# uploads/ deserves attention. During a scan it will contain RAGStrike's POISONED TEST DOCUMENTS --
+# canary-tagged files carrying hidden instructions. They are removed by the scan's cleanup step, but
+# they must never reach version control in the meantime.
+# --------------------------------------------------------------------------------------------------
+
+# ---- Runtime state ----
+uploads/*
+!uploads/.gitkeep
+data/
+vectorstore/chroma/
+vectorstore/*.sqlite3
+!vectorstore/.gitkeep
+!vectorstore/README.md
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Corpus ----
+# Benign and poisoned reference documents ARE committed -- both profiles must ingest an identical
+# corpus, and a corpus that differs between checkouts invalidates the differential test.
+# Anything a user adds locally is not.
+corpus/local/
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+
+# ---- Tooling ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ---- Editors, OS, and local tool state ----
+.vscode/
+.idea/
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
+*.swp
+
+# ---- Streamlit ----
+.streamlit/secrets.toml

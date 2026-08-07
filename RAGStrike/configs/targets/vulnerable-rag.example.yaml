@@ -1,0 +1,54 @@
+# Example target definition -- VulnerableRAG (the local lab).
+#
+# PURPOSE
+#   Shows every field required to register a target, including the authorization block.
+#
+# WHY THE AUTHORIZATION BLOCK IS REQUIRED
+#   No scan starts without it (ADR-017).  It is persisted on the target and embedded in every report,
+#   so a report always carries a record of who authorized the testing and against what reference.
+#   It is a field, not a checkbox -- a checkbox provides no accountability.
+#
+# COPY, DO NOT EDIT IN PLACE.  This file is committed and must never contain a real endpoint.
+version: 1
+target:
+  name: "VulnerableRAG (local lab)"
+  adapter_type: http
+
+  connection:
+    base_url: "http://127.0.0.1:9000"
+    timeout_s: 60
+    # Credentials are NEVER stored here -- reference an environment variable instead.
+    # auth_header: "Authorization"
+    # auth_token_env: "RAGSTRIKE_TARGET_TOKEN_VULNRAG"
+
+    # The HTTP adapter is configuration-driven: request shaping and response extraction are declared
+    # as JSONPath, which is what makes supporting a new bespoke API a config change, not a code change.
+    chat:
+      method: POST
+      path: "/chat"
+      request:
+        prompt_path: "$.message"
+        session_path: "$.session_id"
+      response:
+        text_path: "$.answer"
+        chunks_path: "$.retrieved_chunks[*].text"
+        sources_path: "$.sources[*].name"
+
+    ingest:
+      method: POST
+      path: "/upload"
+      field_name: "file"
+
+  # Declared capabilities are verified by `ragstrike targets verify`, which overwrites them with what
+  # the target actually supports.  Overstating a capability corrupts coverage accounting.
+  capabilities:
+    - CHAT
+    - INGEST_DOCUMENT
+    - LIST_SOURCES
+    - RETURN_CHUNKS
+    - SESSION_MEMORY
+
+  authorization:
+    authorized_by: "your.name@example.com"
+    authorization_ref: "LOCAL-LAB"
+    scope: "Local VulnerableRAG instance owned by the operator. No third-party systems."

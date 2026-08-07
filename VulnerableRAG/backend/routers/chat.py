@@ -1,0 +1,83 @@
+"""``POST /chat`` -- ask a question.
+
+The primary attack surface, and the endpoint RAGStrike will spend most of its time against.
+
+The question is passed to the pipeline verbatim. Nothing normalizes its encoding, caps its length,
+or inspects its content, and nothing filters what comes back. The response deliberately includes the
+retrieved chunks and (on request) the assembled prompt, because an injection that cannot be inspected
+cannot be confirmed -- only guessed at.
+
+``POST /chat/reset`` clears one session. It exists so a poisoning demonstration can prove the effect
+survives into a *new*, clean session rather than lingering in conversation history.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
+from starlette.concurrency import run_in_threadpool
+
+from backend.dependencies import get_engine
+from backend.schemas.chat import (
+    ChatRequest,
+    ChatResponse,
+    ResetSessionRequest,
+    ResetSessionResponse,
+    RetrievedChunkModel,
+)
+from rag.engine import Engine
+from rag.errors import InvalidRequestError
+
+log = logging.getLogger(__name__)
+router = APIRouter(tags=["chat"])
+
+
+@router.post("/chat", response_model=ChatResponse, summary="Ask a question about the corpus")
+async def chat(
+    engine: Annotated[Engine, Depends(get_engine)],
+    request: ChatRequest,
+) -> ChatResponse:
+    if not request.message.strip():
+        raise InvalidRequestError(
+            "The message is empty.", hint="Send a question in the `message` field."
+        )
+
+    # The pipeline is synchronous end to end (Chroma and httpx both block), so it runs in a worker
+    # thread. A single slow model call must not stall every other request.
+    answer = await run_in_threadpool(
+        engine.query.ask,
+        question=request.message,
+        session_id=request.session_id,
+        top_k=request.top_k,
+    )
+
+    expose_chunks = engine.settings.api.expose_retrieved_chunks
+    expose_sources = engine.settings.api.expose_sources
+
+    return ChatResponse(
+        answer=answer.text,
+        question=answer.question,
+        session_id=answer.session_id,
+        model=answer.model,
+        elapsed_ms=answer.elapsed_ms,
+        chunk_count=answer.chunk_count,
+        retrieved_chunks=(
+            [RetrievedChunkModel(**r.to_dict()) for r in answer.retrieved] if expose_chunks else []
+        ),
+        sources=answer.sources if expose_sources else [],
+        prompt=answer.prompt if request.include_prompt else None,
+        raw_response=answer.raw_response if request.include_prompt else None,
+    )
+
+
+@router.post(
+    "/chat/reset", response_model=ResetSessionResponse, summary="Clear one conversation session"
+)
+async def reset_session(
+    engine: Annotated[Engine, Depends(get_engine)],
+    request: ResetSessionRequest,
+) -> ResetSessionResponse:
+    engine.memory.reset(request.session_id)
+    return ResetSessionResponse(session_id=request.session_id, reset=True)

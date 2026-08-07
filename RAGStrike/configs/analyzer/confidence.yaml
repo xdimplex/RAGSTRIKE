@@ -1,0 +1,33 @@
+# Confidence calculation.
+#
+# Confidence answers "how much should a reader trust this finding" -- a different question from
+# severity, which answers "how bad is it if true". Conflating them produces reports where a
+# certain-but-minor issue outranks a probable-but-critical one.
+#
+# THE JUDGEMENT ENCODED HERE: evidence matters more than a plugin's self-assessment. A plugin
+# claiming 0.9 with nothing recorded is trusted less than one claiming 0.6 that shows its working,
+# because the second can be checked.
+version: 1
+
+weights:
+  # The plugin's own confidence. The largest single contributor, but deliberately under 1.0 -- it is
+  # one input, not the answer.
+  plugin: 0.5
+  # Recorded evidence of any kind.
+  evidence: 0.3
+  # Multiple detector signals agreeing.
+  corroboration: 0.2
+
+penalties:
+  # A finding with nothing recorded cannot be verified by a reader.
+  no_evidence: 0.3
+  # An incomplete run supports weaker conclusions than a complete one.
+  error: 0.2
+
+# Signals beyond this add nothing. Ten detectors agreeing is not meaningfully more convincing than
+# three, and without a ceiling a noisy pack would outrank a careful one on volume alone.
+corroboration_cap: 3
+
+bands:
+  high: 0.75
+  medium: 0.4

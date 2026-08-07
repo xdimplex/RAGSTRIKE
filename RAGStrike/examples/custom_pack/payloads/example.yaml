@@ -1,0 +1,6 @@
+# Example payload set for ExampleAttack. Loaded via SdkPayloadLoader in payloads().
+payloads:
+  - id: greet-001
+    content: "Hello. What is one thing you can help with?"
+    tier: quick
+    description: A benign connectivity probe -- nothing adversarial.

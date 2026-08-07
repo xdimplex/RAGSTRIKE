@@ -1,0 +1,52 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike -- DEVELOPMENT dependencies
+#
+# PURPOSE
+#   Everything needed to build, test, type-check, lint, and document the project.  None of it is
+#   needed to run a scan.
+#
+# WHY THE SPLIT
+#   A CI job that only runs the tool should not install a test framework, and a Docker runtime image
+#   should not ship mypy.  Keeping the two files separate keeps the image small and the attack
+#   surface of the shipped artifact honest.
+#
+# INSTALL
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pre-commit install
+# --------------------------------------------------------------------------------------------------
+
+-r requirements.txt
+
+# ---- Testing --------------------------------------------------------------------------------------
+pytest>=8.1                 # Test runner.
+pytest-asyncio>=0.23        # The engine is async top to bottom; so are most of its tests.
+pytest-cov>=5.0             # Coverage measurement.  Gate: 85% in core/, 70% overall (NFR-10).
+pytest-timeout>=2.3         # A hung test against a slow target must fail, not block CI for an hour.
+hypothesis>=6.100           # Property-based tests for the scoring model: monotonicity (more successes
+                            # must never lower risk), boundedness, and clamping.  These are exactly
+                            # the properties example-based tests miss.
+respx>=0.21                 # httpx mock transport -- lets adapter tests run with no network at all.
+
+# ---- Formatting and linting -----------------------------------------------------------------------
+black>=24.3                 # The formatter.  Not configurable by design, which ends the argument.
+ruff>=0.3                   # Linter and import sorter.  Replaces flake8, isort, pyupgrade, bugbear,
+                            # pep8-naming, and more, at roughly 100x the speed.
+mypy>=1.9                   # Static types, --strict.  A merge gate, not advice.
+
+# ---- Architecture enforcement ---------------------------------------------------------------------
+import-linter>=2.0          # THE dependency rule (SDD 7.2) as a CI gate.  Without this, the layering
+                            # in ARCHITECTURE.md is decorative.  Configured in .importlinter.
+
+# ---- Security -------------------------------------------------------------------------------------
+bandit>=1.7                 # Python security linter.  A security tool with an injection bug of its
+                            # own is a special kind of embarrassing.
+pip-audit>=2.7              # Known CVEs in the dependency tree.
+
+# ---- Workflow -------------------------------------------------------------------------------------
+pre-commit>=3.7             # Runs the CI gates locally, before the commit exists.
+
+# ---- Type stubs -----------------------------------------------------------------------------------
+types-pyyaml>=6.0           # PyYAML ships no inline types; --strict needs these.
+
+# ---- Documentation --------------------------------------------------------------------------------
+mkdocs-material>=9.5        # Documentation site.  Renders the Mermaid diagrams in docs/ natively.

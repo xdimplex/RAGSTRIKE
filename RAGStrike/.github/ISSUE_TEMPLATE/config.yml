@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability in RAGStrike
+    url: https://github.com/OWNER/ragstrike/blob/main/SECURITY.md
+    about: Do NOT open a public issue. Follow the private disclosure process in SECURITY.md.
+  - name: Question or discussion
+    url: https://github.com/OWNER/ragstrike/discussions
+    about: Ask questions and discuss design here rather than in the issue tracker.

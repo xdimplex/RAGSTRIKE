@@ -1,0 +1,169 @@
+# --------------------------------------------------------------------------------------------------
+# SecureRAG -- security control configuration.
+#
+# WHAT THIS FILE CAN AND CANNOT DO
+#   It tunes controls. It cannot switch the chain off.
+#
+#   Every control in `rag/policy/controls/` is composed unconditionally by `build_controls()`, in
+#   code. The settings below adjust thresholds and toggle individual *checks* within a control --
+#   they never remove a control from the chain. That distinction is deliberate and it is the same
+#   reasoning ADR-009 applies to the profile split: a security posture that a YAML edit can silently
+#   erase is a posture nobody can rely on.
+#
+#   Concretely: setting `sanitizer.neutralize_instructions: false` leaves the sanitizer in the chain,
+#   still normalizing Unicode and still reported by GET /health. There is no value you can put in
+#   this file that makes SecureRAG report zero active policies.
+#
+# PRECEDENCE
+#   configs/security.yaml  ->  SRAG_SECURITY__<SECTION>__<KEY> environment variables
+#
+#   e.g. SRAG_SECURITY__VALIDATION__MAX_QUESTION_CHARS=4000
+#
+# TUNING THESE IS A SECURITY DECISION
+#   Every threshold here is a trade between false positives (a legitimate document mangled, a
+#   legitimate question refused) and false negatives (an attack that gets through). The defaults are
+#   chosen to keep the application usable on a normal corpus. Raising a limit is a decision to accept
+#   more risk; the comments say which risk.
+# --------------------------------------------------------------------------------------------------
+version: 1
+
+security:
+  # ------------------------------------------------------------------------------------------------
+  # Context sanitizer -- runs at ingestion, on every uploaded document.
+  # ------------------------------------------------------------------------------------------------
+  sanitizer:
+    # NFKC folding. Turning this off means a document can use fullwidth or mathematical-alphanumeric
+    # characters to render "ignore previous instructions" in a form no pattern matches.
+    normalize_unicode: true
+
+    # Zero-width and bidirectional-control characters. These are how an instruction hides in a
+    # document that looks innocuous to a human reviewer -- the reader and the model see different
+    # text, which is the entire trick.
+    strip_invisible_characters: true
+
+    # Wraps instruction-shaped spans so they read as quoted data. The span is preserved, not deleted:
+    # a legitimate document *about* prompt injection stays readable.
+    neutralize_instructions: true
+
+  # ------------------------------------------------------------------------------------------------
+  # Input validation -- runs on every question.
+  # ------------------------------------------------------------------------------------------------
+  validation:
+    # A question far longer than this is context stuffing rather than a question. Raising it widens
+    # the window for pushing the system prompt out of the model's effective attention.
+    max_question_chars: 2000
+    min_question_chars: 1
+    normalize_unicode: true
+    reject_control_characters: true
+
+  # ------------------------------------------------------------------------------------------------
+  # Retrieval filtering -- runs on the chunks retrieved for each question.
+  # ------------------------------------------------------------------------------------------------
+  retrieval:
+    # The relevance floor. A vector search always returns its top_k however bad the matches are, so
+    # without a floor a poisoned document that matches nothing in particular is pulled into the
+    # context of every unrelated question. 0.0 disables the floor -- and disabling it is the single
+    # change here most likely to let an indirect injection through.
+    min_score: 0.15
+
+    # Hard cap on chunks reaching the prompt, applied after the floor.
+    max_chunks: 5
+
+    # A single chunk larger than this is a chunking failure or a stuffing attempt.
+    max_chunk_chars: 4000
+
+    # Instruction-shaped matches per hundred words. A long document that mentions "override" once
+    # scores near zero; two lines that are nothing but override framing score high. Lowering this
+    # catches more injection and drops more legitimate security documentation.
+    max_instruction_density: 8.0
+
+  # ------------------------------------------------------------------------------------------------
+  # Session bounding -- caps history and total prompt size.
+  # ------------------------------------------------------------------------------------------------
+  session:
+    # Unbounded history means an injection that lands once is replayed to the model on every
+    # subsequent question, forever. This gives a poisoned turn a lifetime.
+    max_history_turns: 6
+
+    # Backstop on the assembled prompt. Trimming takes from the retrieved context, never from the
+    # system prompt -- truncating the instruction hierarchy while keeping the untrusted data would
+    # be exactly backwards.
+    max_prompt_chars: 24000
+
+  # ------------------------------------------------------------------------------------------------
+  # Output validation -- runs on the model's answer.
+  # ------------------------------------------------------------------------------------------------
+  output:
+    max_answer_chars: 8000
+
+    # Compares the answer against the application's own system prompt. This catches every phrasing of
+    # a leakage request at once, because it tests the outcome rather than trying to recognise the
+    # request. Turning it off removes the only control that reliably stops prompt disclosure.
+    detect_prompt_echo: true
+
+    # Shortest run of prompt text that counts as an echo, in characters. Lower catches paraphrased
+    # leaks and risks flagging coincidental phrasing; higher does the reverse.
+    echo_window: 48
+
+    normalize_whitespace: true
+
+  # ------------------------------------------------------------------------------------------------
+  # Secret masking -- the last thing that touches the answer.
+  # ------------------------------------------------------------------------------------------------
+  masking:
+    # Masks email addresses as PII. Separate from credential masking because an operator may
+    # reasonably want one and not the other.
+    mask_emails: true
+
+    # Length of the fingerprint kept in place of a masked value. Enough to correlate two occurrences
+    # of the same secret across logs and responses; far too little to recover it.
+    fingerprint_chars: 6
+
+  # ------------------------------------------------------------------------------------------------
+  # Citation grounding.
+  # ------------------------------------------------------------------------------------------------
+  citations:
+    # Appends a note when the answer cites a document that was not retrieved. Annotating rather than
+    # deleting: a fabricated citation is evidence the reader needs, and silently stripping it
+    # produces an answer that looks clean and is still wrong.
+    annotate_ungrounded: true
+
+  # ------------------------------------------------------------------------------------------------
+  # Upload validation -- enforced at the API boundary, before ingestion.
+  # ------------------------------------------------------------------------------------------------
+  uploads:
+    max_upload_mb: 25
+    allowed_extensions: ["pdf"]
+    allowed_mime_types: ["application/pdf", "application/x-pdf", "application/octet-stream"]
+
+    # Checks the file's magic bytes rather than trusting its extension or the Content-Type header,
+    # both of which the client controls. `application/octet-stream` is allowed above precisely
+    # because some clients send it for everything -- the magic-byte check is what makes accepting it
+    # safe.
+    verify_magic_bytes: true
+
+    # Rejects an upload whose SHA-256 already exists rather than silently creating a second copy.
+    reject_duplicates: true
+
+  # ------------------------------------------------------------------------------------------------
+  # HTTP layer.
+  # ------------------------------------------------------------------------------------------------
+  http:
+    # Response headers. This is a JSON API, so most of these are defence in depth for the case where
+    # a browser renders a response directly -- which /docs does.
+    security_headers: true
+
+    # Strips the server banner. Minor, but free.
+    suppress_server_header: true
+
+  # ------------------------------------------------------------------------------------------------
+  # Declared, NOT implemented. See rag/policy/controls/future_controls.py.
+  #
+  # These are reported by GET /health under `declared_controls`, never under `security_policies`.
+  # Setting any of them to true does NOT enable a control -- there is nothing to enable. The flag
+  # records intent, and the health endpoint reports the gap honestly.
+  # ------------------------------------------------------------------------------------------------
+  planned:
+    rate_limiting: false
+    authentication: false
+    authorization: false

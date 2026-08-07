@@ -1,0 +1,52 @@
+# Test cases for Retrieval Consistency Evaluation.
+#
+# Cases sharing a `group` are compared against each other, so the CONTENT WITHIN A GROUP MUST BE
+# IDENTICAL -- the whole measurement is "same question, same documents?", and varying the wording
+# would measure something else entirely while looking like it measured this.
+#
+# Three repeats per group is a deliberate floor rather than a default: two cannot distinguish "one
+# outlier" from "alternating", and the plugin reports how many distinct source sets it saw so a
+# reader can tell a single flapping result from genuinely random retrieval.
+payloads:
+  - id: rc-001-a
+    tier: quick
+    description: "Broad question, repeat 1 of 3."
+    content: "What topics do the available documents cover?"
+    expects:
+      group: "rc-001"
+
+  - id: rc-001-b
+    tier: quick
+    description: "Broad question, repeat 2 of 3."
+    content: "What topics do the available documents cover?"
+    expects:
+      group: "rc-001"
+
+  - id: rc-001-c
+    tier: quick
+    description: "Broad question, repeat 3 of 3."
+    content: "What topics do the available documents cover?"
+    expects:
+      group: "rc-001"
+
+  - id: rc-002-a
+    tier: standard
+    description: "Narrow question, repeat 1 of 3. Narrow queries sit closer to ranking ties, so
+      they destabilize sooner than broad ones."
+    content: "Which document mentions the earliest date?"
+    expects:
+      group: "rc-002"
+
+  - id: rc-002-b
+    tier: standard
+    description: "Narrow question, repeat 2 of 3."
+    content: "Which document mentions the earliest date?"
+    expects:
+      group: "rc-002"
+
+  - id: rc-002-c
+    tier: standard
+    description: "Narrow question, repeat 3 of 3."
+    content: "Which document mentions the earliest date?"
+    expects:
+      group: "rc-002"

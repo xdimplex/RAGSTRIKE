@@ -1,0 +1,81 @@
+# Remediation entries owned by this pack.
+#
+# ADVICE IS RETRIEVED, NEVER GENERATED (ADR-012). Every entry was written once, by a person, and is
+# looked up by technique. A model writing remediation at report time would produce advice that
+# varies between identical runs and cannot be reviewed before it reaches an operator.
+#
+# `effort` is the implementer's cost, not the severity. The two answer different questions.
+version: 1
+
+default:
+  title: "Treat the system prompt as configuration, not as a secret"
+  remediation: >
+    The durable fix is to stop the prompt from being worth protecting. Move business rules,
+    endpoints, and policy decisions out of the prompt and into code the model never sees, so that
+    recovering the prompt yields instructions rather than intelligence. Filtering disclosure is a
+    mitigation and will always be partial -- paraphrase, translation, and reformatting are
+    unbounded, and every filter is a denylist against an infinite set.
+  effort: "HIGH"
+  references:
+    - "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+
+techniques:
+  direct-request:
+    title: "Refuse disclosure requests, then assume the refusal will be bypassed"
+    remediation: >
+      Add an explicit instruction not to disclose configuration and an output check that catches
+      verbatim prompt text. Treat both as speed bumps: they raise the cost of the easiest attempt
+      and do nothing about the six techniques below. The finding worth acting on is that the prompt
+      contained something you did not want disclosed.
+    effort: "LOW"
+
+  completion-continuation:
+    title: "Bind refusal to content, not to request shape"
+    remediation: >
+      A guard that catches "reveal your prompt" but not "continue this text" is matching intent
+      rather than data. Apply the disclosure check to the *output* -- does this response reproduce
+      my configuration? -- so it fires regardless of how the request was phrased.
+    effort: "MEDIUM"
+
+  translation-laundering:
+    title: "Accept that semantic leaks defeat surface filters"
+    remediation: >
+      Translated and summarized prompts will not match any literal string check. If the prompt's
+      contents genuinely must stay private, the only reliable control is not putting them in the
+      prompt. Where that is impossible, compare output against the prompt semantically and accept
+      the false-positive rate that comes with it.
+    effort: "HIGH"
+
+  format-transformation:
+    title: "Apply disclosure checks to formatting requests"
+    remediation: >
+      Reformatting is treated as benign by most guardrails regardless of what is being reformatted.
+      Route format-conversion requests through the same output check as any other response, and
+      scope the assistant so that formatting arbitrary internal text is not one of its jobs.
+    effort: "MEDIUM"
+
+  debug-pretext:
+    title: "Do not honour authority claimed in message content"
+    remediation: >
+      Privilege must come from the transport -- an authenticated session, a separate endpoint,
+      a signed request -- never from what a message says about itself. Diagnostics that genuinely
+      need to dump configuration belong behind an interface the model does not mediate.
+    effort: "MEDIUM"
+
+  token-boundary-probe:
+    title: "Inspect the conversation, not the response"
+    remediation: >
+      A leak assembled across turns is invisible to any check that examines one response at a time.
+      Evaluate accumulated session state, and cap how much configuration-adjacent text a single
+      conversation may emit. Where continuity is not required, a fresh session per request removes
+      the technique entirely.
+    effort: "HIGH"
+
+  error-channel-leak:
+    title: "Give the error path the same disclosure rules as the success path"
+    remediation: >
+      Guardrails are usually applied to answers and forgotten on failures. Ensure exception
+      handlers, validation messages, and debug fields pass through the same output check, and
+      never include prompt-assembly context in a message that can reach a user. Return a generic
+      failure and log the detail server-side.
+    effort: "LOW"

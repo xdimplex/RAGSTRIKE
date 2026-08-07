@@ -1,0 +1,112 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike -- .gitignore
+#
+# The entries under "RAGStrike runtime data" are the ones that matter most.  scans.db holds RAW,
+# UNREDACTED evidence, which by design may include real credentials and real personal data that a
+# target disclosed during a scan.  Reports are redacted by default but still describe real weaknesses
+# in a real system.  Neither belongs in version control, ever.
+# --------------------------------------------------------------------------------------------------
+
+# ---- RAGStrike runtime data (see the note above) ----
+#
+# Note the `dir/*` form rather than `dir/`. Git cannot re-include a file whose PARENT DIRECTORY is
+# excluded, so `data/` followed by `!data/README.md` silently drops the README. Excluding the
+# directory's *contents* keeps the negations working.
+data/*
+!data/.gitkeep
+!data/README.md
+reports/*
+!reports/.gitkeep
+!reports/README.md
+logs/*
+!logs/README.md
+!logs/application/
+!logs/scans/
+!logs/errors/
+!logs/debug/
+logs/*/*
+!logs/*/.gitkeep
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ---- Local attack packs -- a developer's own work, not the project's ----
+packs/*
+!packs/.gitkeep
+!packs/README.md
+
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# ---- Python ----
+# Tool caches. These regenerate on the next run and are pure noise in a diff.
+# `.import_linter_cache` was the one gap: import-linter writes it on every `lint-imports`,
+# so a contributor who ran the architecture check saw it as an untracked directory.
+.import_linter_cache/
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib60/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ---- Virtual environments ----
+.venv/
+venv/
+ENV/
+env/
+
+# ---- Tooling caches ----
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+
+# ---- Editors and local tool state ----
+.vscode/
+!.vscode/extensions.json
+.idea/
+# per-machine tool permissions; contains absolute paths, not shareable
+.claude/settings.local.json
+*.swp
+*.swo
+*~
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Docs build ----
+site/
+docs/_build/
+
+# ---- Streamlit ----
+.streamlit/secrets.toml

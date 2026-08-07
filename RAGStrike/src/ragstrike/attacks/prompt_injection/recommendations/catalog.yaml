@@ -1,0 +1,82 @@
+# Remediation entries owned by this pack.
+#
+# ADVICE IS RETRIEVED, NEVER GENERATED (ADR-012). Every entry here was written once, by a person,
+# and is looked up by technique. A model writing remediation at report time would produce advice
+# that varies between identical runs and cannot be reviewed before it reaches an operator.
+#
+# `effort` is the implementer's cost, not the severity. A HIGH-severity finding with a LOW-effort
+# fix should be fixed this afternoon; the two fields answer different questions.
+version: 1
+
+# Applied when the pack reports a failure but no single technique dominates.
+default:
+  title: "Separate instructions from data at the API boundary"
+  remediation: >
+    Put system instructions in a dedicated system role and never concatenate user or retrieved
+    text into it. Re-assert the grounding rule after the untrusted span rather than before it, and
+    treat every retrieved document as data that may be adversarial. Prompt-level pleading
+    ("never ignore these instructions") is not a control -- it is the same channel as the attack.
+  effort: "MEDIUM"
+  references:
+    - "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+
+techniques:
+  direct-override:
+    title: "Enforce an instruction hierarchy the user cannot rewrite"
+    remediation: >
+      Use the API's role separation so system instructions arrive in a channel user text cannot
+      reach, and re-assert the grounding rule after the user turn. If direct override succeeds,
+      no subtler defence is worth tuning until it does not.
+    effort: "MEDIUM"
+
+  delimiter-escape:
+    title: "Stop inferring structure from text"
+    remediation: >
+      Never let the boundary between instruction and content depend on a string that untrusted
+      input can also contain. Use the API's structured message roles, and escape or strip
+      template markers -- chat delimiters, role headers, closing tags -- from retrieved and
+      user-supplied spans during ingestion rather than at prompt-assembly time.
+    effort: "MEDIUM"
+
+  authority-spoof:
+    title: "Do not honour authority claimed in message content"
+    remediation: >
+      Privilege must come from the transport -- an authenticated session, a signed request, a
+      separate endpoint -- never from what a message says about itself. The model has no way to
+      verify a claim of being the operator, so it must not be given a reason to act on one.
+    effort: "MEDIUM"
+
+  task-substitution:
+    title: "Constrain the task, not just the content"
+    remediation: >
+      Bound what the assistant will do, not only what it will say: if the application answers
+      questions about a corpus, then translation, echo, and formatting requests aimed at
+      arbitrary text are out of scope and can be refused structurally. Validate that the response
+      is grounded in retrieved context before returning it.
+    effort: "HIGH"
+
+  encoding-obfuscation:
+    title: "Do not rely on matching literal strings"
+    remediation: >
+      Normalize input before inspection -- NFKC, strip zero-width and control characters, fold
+      homoglyphs -- and decode obvious encodings before filtering. Then accept that this narrows
+      the gap without closing it: the set of encodings is unbounded, so input filtering must be a
+      layer, never the control. Enforce the boundary at the API instead.
+    effort: "HIGH"
+
+  multilingual-pivot:
+    title: "Test and enforce guardrails in every language you accept"
+    remediation: >
+      Either restrict accepted input languages and enforce that, or evaluate guardrails in each
+      language you serve. Safety tuning concentrated in English while capability generalizes is a
+      coverage gap that English-only testing cannot see.
+    effort: "HIGH"
+
+  payload-splitting:
+    title: "Inspect the conversation, not the message"
+    remediation: >
+      Any control that examines one turn at a time is structurally blind to an instruction no
+      single turn contains. Evaluate the assembled context that will reach the model, and treat
+      accumulated session state as untrusted input in its own right. Where continuity is not
+      needed, a fresh session per request removes the technique entirely.
+    effort: "HIGH"

@@ -1,0 +1,32 @@
+# Source Attribution Verification -- does every answer cite sources, and do the citations
+# correspond to chunks the system actually retrieved?
+#
+# NON-OFFENSIVE by any reading. This one asks ordinary corpus questions and inspects the structured
+# retrieval fields on the reply. It is a correctness check on the system's own bookkeeping.
+schema_version: 2
+
+plugin:
+  slug: source-attribution
+  name: "Source Attribution Verification"
+  version: "1.0.0"
+  category: evaluation
+  severity: MEDIUM
+  description: >
+    Verifies that answers carry source attribution and that every cited source appears among the
+    chunks the system reported retrieving -- catching citations that were generated rather than
+    grounded.
+  author: "RAGStrike"
+  owasp_mapping: ["LLM09"]
+  references: ["docs/evaluation-plugins.md"]
+  tags: ["evaluation", "non-offensive", "grounding"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:SourceAttributionVerification"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  network_egress: false
+  filesystem_write: false

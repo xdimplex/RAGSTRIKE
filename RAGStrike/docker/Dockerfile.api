@@ -1,0 +1,31 @@
+# RAGStrike API -- PLACEHOLDER (Phase 1)
+#
+# PURPOSE
+#   Container image for the FastAPI service.
+#
+# WHY IT EXISTS NOW
+#   To fix the shape of the build -- multi-stage, non-root, slim runtime -- before anyone writes a
+#   quick single-stage Dockerfile that ships a compiler and runs as root.
+#
+# FUTURE RESPONSIBILITIES
+#   - Multi-stage: a builder stage that compiles wheels, a runtime stage that carries none of it
+#   - Non-root user; read-only root filesystem where possible
+#   - Volumes for data/ and reports/ so evidence survives a container replacement
+#   - HEALTHCHECK against /api/v1/health
+#   - Build args for version stamping so a report can name the exact image that produced it
+#
+# NEVER
+#   - Run as root
+#   - Bake a secret into a layer
+#   - Copy data/, reports/, or .env into the image
+
+FROM python:3.11-slim AS builder
+# Phase 11: install build deps, build wheels into /wheels
+
+FROM python:3.11-slim AS runtime
+# Phase 11: create a non-root user, install from /wheels, copy src/, expose 8000,
+#           HEALTHCHECK, and CMD uvicorn ragstrike.api.app:app
+
+LABEL org.opencontainers.image.title="RAGStrike API" \
+      org.opencontainers.image.description="Offensive security evaluation framework for RAG systems" \
+      org.opencontainers.image.licenses="Apache-2.0"

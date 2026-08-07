@@ -1,0 +1,23 @@
+# VulnerableRAG -- PLACEHOLDER (Phase 1)
+#
+# PURPOSE
+#   Image for the vulnerable profile.
+#
+# FUTURE RESPONSIBILITIES
+#   - Multi-stage build, non-root user
+#   - VRAG_PROFILE=vulnerable
+#   - Expose 9000 (API) and 8601 (UI)
+#   - HEALTHCHECK against /health
+#   - A startup banner making the profile unmistakable in logs
+#
+# NEVER
+#   - Bake RAGSTRIKE_LAB_ACK=1 into the image. The gate only works if a human sets it.
+#   - Publish a port on 0.0.0.0.
+#   - Tag or push this as :latest to a public registry.
+
+FROM python:3.11-slim AS runtime
+# Phase 2: install dependencies, copy the application, run as a non-root user
+
+LABEL org.opencontainers.image.title="VulnerableRAG" \
+      org.opencontainers.image.description="INTENTIONALLY VULNERABLE. Local security lab only." \
+      org.opencontainers.image.licenses="Apache-2.0"

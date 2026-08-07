@@ -1,0 +1,62 @@
+# Pre-commit -- the same gates CI runs, but on your machine, before the commit exists.
+#
+# PURPOSE
+#   Catch formatting, typing, layering, and secret-leak problems in the second it takes to commit
+#   rather than the five minutes it takes CI to tell you.
+#
+# WHY IT EXISTS
+#   The gates are identical to .github/workflows/ci.yml.  A hook that is weaker than CI teaches
+#   developers to distrust it; a hook that is stricter blocks work CI would have accepted.
+#
+# INSTALL
+#   pre-commit install
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.4
+    hooks:
+      - id: ruff
+        args: ["--fix", "--exit-non-zero-on-fix"]
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies: ["pydantic>=2.6", "types-pyyaml"]
+        args: ["--strict", "--ignore-missing-imports"]
+
+  # The dependency rule is a commit-time gate, not a code-review conversation.
+  - repo: local
+    hooks:
+      - id: import-linter
+        name: import-linter (Clean Architecture layers)
+        entry: lint-imports
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  # Evidence in this project may contain real secrets a target leaked.  Belt and braces.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks

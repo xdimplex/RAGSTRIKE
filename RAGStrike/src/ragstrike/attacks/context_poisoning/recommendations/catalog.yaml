@@ -1,0 +1,72 @@
+# Remediation entries owned by this pack.
+#
+# ADVICE IS RETRIEVED, NEVER GENERATED (ADR-012). Keyed by the analyzer's `reason` rather than by
+# technique, because what an operator should do here depends on *which* integrity property broke,
+# not on which question exposed it.
+version: 1
+
+default:
+  title: "Treat the corpus as an untrusted input channel"
+  remediation: >
+    Anything that can write to the vector store can influence every future answer, for every user.
+    Gate ingestion behind the same review a code change gets: authenticate uploaders, record
+    provenance for every document, and verify at query time that each retrieved chunk traces to a
+    document you meant to have. The retrieval channel looks trusted and is not.
+  effort: "HIGH"
+  references:
+    - "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+
+reasons:
+  forbidden_source_retrieved:
+    title: "Enforce provenance at retrieval time, not only at ingestion"
+    remediation: >
+      A document you did not intend to serve reached a query it has no relevance to. Filter
+      retrieval results against a provenance manifest and drop any chunk whose source is not
+      declared, rather than trusting that ingestion controls held. Scope retrieval by collection or
+      tenant so an unrelated document cannot compete for an unrelated query in the first place.
+    effort: "MEDIUM"
+
+  expected_source_missing:
+    title: "Confirm the corpus is ingested before trusting a clean result"
+    remediation: >
+      A document the dataset expects was not returned. Most often this means the corpus was never
+      ingested, not that retrieval is broken -- and a scan against an empty corpus produces
+      reassuring output that means nothing. Verify ingestion, then re-run. If the corpus is present
+      and the document still does not surface, investigate chunking and the embedding model before
+      concluding anything about security.
+    effort: "LOW"
+
+  insufficient_chunks:
+    title: "Investigate retrieval recall before drawing security conclusions"
+    remediation: >
+      Retrieval returned fewer chunks than the dataset expects. Check top_k, the similarity
+      threshold, and whether chunking produced usable segments. Low recall makes every other
+      finding in this pack weaker, because a check that retrieved nothing cannot demonstrate that
+      poisoned content was excluded.
+    effort: "LOW"
+
+  unsupported_citation:
+    title: "Derive citations from retrieval, not from generation"
+    remediation: >
+      Build the source list from the chunks actually passed to the model rather than from anything
+      the model wrote, and drop any citation that cannot be traced to one. A fabricated citation is
+      indistinguishable to a reader from a real one, which is precisely what makes it dangerous.
+    effort: "MEDIUM"
+
+  expected_citation_missing:
+    title: "Surface the sources an answer was grounded in"
+    remediation: >
+      The answer omitted a citation the dataset expects. Return provenance with every response so a
+      reader can check the grounding themselves; an unattributed answer cannot be verified, and an
+      unverifiable answer is indistinguishable from a hallucinated one.
+    effort: "LOW"
+
+  poisoned_content_repeated:
+    title: "Isolate document content from instruction following"
+    remediation: >
+      The model did not merely retrieve poisoned content -- it repeated it. Wrap retrieved content
+      in an envelope that carries no instruction authority, state in the system role that nothing
+      inside it is to be obeyed, and strip imperative scaffolding during ingestion. Combine with
+      provenance filtering: the content should not have been retrievable, and it should not have
+      been obeyed even if it was.
+    effort: "HIGH"

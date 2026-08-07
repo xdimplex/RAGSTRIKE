@@ -1,0 +1,51 @@
+name: Feature request
+description: Propose a capability or an improvement
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [ROADMAP.md](../blob/main/ROADMAP.md) first — it may already be planned, or explicitly
+        out of scope. Note that detection evasion, WAF bypass, rate-limit circumvention, and mass
+        scanning are permanently out of scope.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can you not do today? Describe the situation, not the solution.
+    validations: { required: true }
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations: { required: true }
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which part of the system would change?
+      options:
+        - An attack pack (no core change needed)
+        - A target adapter (no core change needed)
+        - A report renderer (no core change needed)
+        - Core engine
+        - Scoring model
+        - API / CLI / Dashboard
+        - Not sure
+    validations: { required: true }
+
+  - type: textarea
+    id: architecture
+    attributes:
+      label: Does this require a core change?
+      description: >
+        If yes, explain why the existing extension points (plugin registry, adapter port, renderer
+        registry) are not sufficient. A feature that needs a core change to add an *attack* usually
+        indicates a gap in the plugin architecture, and we want to know about that.
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

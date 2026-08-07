@@ -1,0 +1,101 @@
+# --------------------------------------------------------------------------------------------------
+# VulnerableRAG -- shared configuration
+#
+# PURPOSE
+#   Settings identical for BOTH profiles. Per-profile overrides live in profiles/*/config.yaml and are
+#   limited to ports, storage paths, and the system prompt file.
+#
+# WHY RETRIEVAL PARAMETERS ARE SHARED
+#   If VulnerableRAG chunked at 512 and SecureRAG at 256, a difference in scan results would look like
+#   a security control when it is really a tuning artifact. Identical parameters are what make the
+#   differential comparison mean something.
+#
+# THERE IS NO SECURITY TOGGLE IN THIS FILE, DELIBERATELY.
+#   Controls are composed in profiles/*/profile.py, in code. A configuration flag could be flipped by
+#   accident, silently hardening the vulnerable target and invalidating every scan result with no
+#   visible symptom (ADR-009).
+#
+# PRECEDENCE (lowest to highest)
+#   this file  ->  profiles/<profile>/config.yaml  ->  VRAG_* environment variables
+# --------------------------------------------------------------------------------------------------
+version: 1
+
+server:
+  host: "127.0.0.1"          # loopback only -- see docs/LAB_SAFETY.md
+  api_port: 9000
+  ui_port: 8601
+  cors_origins:
+    - "http://127.0.0.1:8601"
+    - "http://localhost:8601"
+    - "http://127.0.0.1:8602"
+    - "http://localhost:8602"
+
+model:
+  provider: ollama
+  base_url: "http://localhost:11434"
+  name: "qwen2.5:3b"         # `ollama pull qwen2.5:3b`
+                             #
+                             # WHY NOT qwen3:4b, WHICH THIS USED TO BE
+                             #   Qwen3 is a REASONING model. It narrates its thinking in plain
+                             #   prose -- "Okay, the user is asking..." -- and Ollama's `think:
+                             #   false` does not suppress that, because the narration is ordinary
+                             #   output rather than a <think> block the client can strip.
+                             #
+                             #   Measured on this machine, same prompt, temperature 0:
+                             #     qwen3:4b     74s, 246 tokens, answer buried in reasoning
+                             #     qwen2.5:3b   32s,  23 tokens, clean direct answer
+                             #
+                             #   So the reasoning was costing ~10x the tokens to say the same
+                             #   thing, and at 5.5 tok/s on CPU that is the entire reason the
+                             #   assistant felt slow AND the reason answers looked like debug
+                             #   output. It also made `max_tokens` truncate mid-thought, so some
+                             #   answers never arrived at all.
+                             #
+                             #   Still Qwen, still local, still 3B-class. MUST match SecureRAG:
+                             #   a different model between the two labs would make every scan
+                             #   difference a model artefact rather than a security control.
+  temperature: 0.0           # zero for reproducibility (RAGStrike SC4)
+  max_tokens: 384            # CPU-only inference measures ~5.5 tok/s for qwen3:4b, so the old 1024
+                             # needed ~186s -- just past the old 180s timeout, and EVERY generation
+                             # died as a ModelTimeoutError. 384 tokens is ~70s and still far more
+                             # than a leaked system prompt or an injected answer needs.
+  timeout_s: 300             # headroom over the ~70s budget above, for a cold model load.
+                             # MUST match SecureRAG exactly: a timeout difference between the two
+                             # labs would show up in a scan as if it were a security control.
+  strip_thinking: true       # some models inline <think>...</think>; strip it from the answer
+  think: false               # Qwen3 is a thinking model. Left on, it can spend the whole
+                             # max_tokens budget reasoning and return an EMPTY answer. Off by
+                             # default so the lab answers reliably; set true to watch it reason.
+
+embedding:
+  provider: ollama           # everything through Ollama: no extra model download, fully offline
+  model: "nomic-embed-text"  # `ollama pull nomic-embed-text`
+  timeout_s: 60
+
+ingestion:
+  chunk_size: 512
+  chunk_overlap: 64
+  supported_types: ["pdf"]
+  max_upload_mb: 25
+
+retrieval:
+  top_k: 5
+  similarity_threshold: null    # null = no threshold. Enforcing one IS a security control and
+                                # therefore belongs in rag/policy/controls/, not here.
+
+storage:
+  upload_dir: "./uploads"
+  chroma_dir: "./vectorstore/chroma"
+  corpus_dir: "./corpus"
+  database_path: "./data/vulnerable.db"
+  log_dir: "./logs"
+
+session:
+  max_history_turns: null       # null = unbounded (weakness V8). Bounding it IS a control.
+
+api:
+  expose_retrieved_chunks: true # deliberate: retrieval introspection is what makes retrieval-integrity
+                                # and citation testing possible, and what makes an injection visible
+                                # to a learner.
+  expose_sources: true
+  expose_system_prompt: true    # weakness V5 -- /health returns the system prompt on request

@@ -1,0 +1,50 @@
+# Scan profile: quick
+#
+# PURPOSE
+#   A few minutes. The two highest-impact attack categories, plus the diagnostic.
+#
+# WHY PROFILES EXIST
+#   A CI gate and a pre-release audit want different depth.  Profiles are precedence level 3 and
+#   select which packs run, which payload tiers are included, and how many attempts each payload gets.
+#
+# WHY THE PACK LIST CHANGED IN PHASE 16
+#   This file used to name four packs: prompt-injection, prompt-leakage, role-override, and
+#   secret-extraction.  **Two of those were never built.**  So a "quick" scan ran two packs while the
+#   file said four, and nothing anywhere reported the difference -- an uninstalled pack is absent
+#   from the plugin list, so nothing iterated over it and nothing skipped it.
+#
+#   The planner now records profile-named packs that are not installed, and the CLI prints them.
+#   This file is trimmed to packs that actually exist, so the file and the scan agree.
+#
+# ON `attempts`
+#   LLM behaviour is stochastic.  Exploitability is scored as successes/attempts, so a higher attempt
+#   count buys a more reliable measurement at the cost of time -- it is not redundancy.  Two is the
+#   minimum that can tell "always" apart from "sometimes".
+#
+# ROUGHLY WHAT THIS COSTS
+#   dummy-attack      1 payload  x 1 = ~1 call
+#   prompt-injection  4 payloads x 2 =  8 calls
+#   prompt-leakage    5 payloads x 2 = 10 calls
+#   ~19 model calls.  At 5-40s each on CPU: about 2-13 minutes.  The scan_timeout_s below was 120,
+#   which could not have finished this on any real machine -- raised to 900.
+version: 1
+profile:
+  id: quick
+  name: "Quick scan"
+  description: "Smoke coverage of the two highest-impact attack categories. A few minutes."
+
+  packs:
+    - "dummy-attack"        # diagnostic -- proves the harness itself reaches the target
+    - "prompt-injection"    # LLM01 -- instructions smuggled in through retrieved documents
+    - "prompt-leakage"      # LLM07 -- system prompt and configuration extraction
+
+  payload_tiers: ["quick"]
+  attempts: 2
+
+  engine:
+    max_concurrency: 4
+    scan_timeout_s: 3600  # 10 quick-tier payloads x 2 attempts = 20 generations. Measured at
+                          # ~76s each on CPU that is ~25 min, so the old 900s truncated the scan
+                          # and the partial run still rendered as COMPLETED.
+
+  seed: 1337            # deterministic ordering; same seed -> same plan (SC4)

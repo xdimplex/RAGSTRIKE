@@ -1,0 +1,17 @@
+# VulnerableRAG profile overrides.
+#
+# Merged on top of configs/config.yaml. Deliberately tiny: only ports and storage paths, so that the
+# two profiles cannot diverge on anything that would affect retrieval or generation behaviour.
+#
+# THERE IS NO SECURITY SETTING IN THIS FILE, AND THERE NEVER WILL BE.
+# The empty policy chain is constructed in profile.py, in code (ADR-009). A YAML flag could be
+# flipped by accident, silently hardening this target and invalidating every scan run against it.
+version: 1
+profile: vulnerable
+
+server:
+  api_port: 9000
+  ui_port: 8601
+
+storage:
+  database_path: "./data/vulnerable.db"

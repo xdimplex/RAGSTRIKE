@@ -1,0 +1,22 @@
+# --------------------------------------------------------------------------------------------------
+# VulnerableRAG -- DEVELOPMENT dependencies
+#
+# INSTALL
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   pip install -e ".[ui]"
+# --------------------------------------------------------------------------------------------------
+
+-r requirements.txt
+
+pytest>=8.1                 # Test runner.
+pytest-asyncio>=0.23        # The pipelines are async.
+pytest-cov>=5.0             # Coverage.
+
+black>=24.3                 # Formatter.
+ruff>=0.3                   # Linter and import sorter.
+mypy>=1.9                   # Static types, strict.
+pre-commit>=3.7             # Local gates.
+types-pyyaml>=6.0           # Stubs for --strict.
+
+streamlit>=1.33             # The UI. An extra rather than a base dependency so the API can run headless.
+pandas>=2.2                 # Corpus and retrieval tables in the UI.

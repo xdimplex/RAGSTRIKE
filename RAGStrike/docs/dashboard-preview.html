@@ -1,0 +1,1234 @@
+<h2 style="font-family:system-ui;margin:14px 20px 6px">RAGStrike — dark (default)</h2><style>
+:root {
+  --rs-bg: #0d1117;
+  --rs-surface: #151b23;
+  --rs-surface-raised: #1c242e;
+  --rs-border: #2b3541;
+  --rs-border-strong: #3d4a59;
+  --rs-text: #e8edf2;
+  --rs-text-muted: #a3b1c0;
+  --rs-text-faint: #6e7d8c;
+  --rs-accent: #4c9aff;
+  --rs-accent-soft: rgba(76, 154, 255, 0.13);
+  --rs-ok: #31c48d;
+  --rs-warn: #f7b955;
+  --rs-danger: #f2555a;
+  --rs-info: #5aa9e6;
+  --rs-neutral: #7d8fa1;
+  --rs-critical: #ff4d4f;
+  --rs-high: #ff7a45;
+  --rs-medium: #f7b955;
+  --rs-low: #4dabf7;
+  --rs-informational: #8899a8;
+  --rs-space-xs: 3px;
+  --rs-space-sm: 6px;
+  --rs-space-md: 10px;
+  --rs-space-lg: 16px;
+  --rs-space-xl: 24px;
+  --rs-radius-sm: 4px;
+  --rs-radius-md: 6px;
+  --rs-radius-lg: 8px;
+  --rs-font-mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', ui-monospace, 'DejaVu Sans Mono', 'Liberation Mono', Consolas, 'Courier New', monospace;
+  --rs-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+  --rs-text-xs: 0.70rem;
+  --rs-text-sm: 0.79rem;
+  --rs-text-md: 0.88rem;
+  --rs-text-lg: 1.02rem;
+  --rs-text-xl: 1.30rem;
+  --rs-text-hero: 1.75rem;
+  --rs-tracking: 0.08em;
+}
+
+.rs-label {
+  font-size: var(--rs-text-xs);
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint);
+  font-weight: 600;
+}
+
+/* Panels, not cards.
+ *
+ * A card floats; a panel is a bounded region of a workspace. The distinction is the whole visual
+ * difference between a dashboard and a tool: Burp Suite, Wireshark and a SIEM are built from
+ * abutting panels with hard edges and their own header strips, so the eye can tell instantly which
+ * region it is reading. Softer, floating cards with generous padding read as a web page.
+ *
+ * A top accent rule replaces the drop shadow -- shadows imply layers above the page, which is the
+ * wrong metaphor for a fixed workspace. */
+.rs-card {
+  position: relative;
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  padding: var(--rs-space-md) var(--rs-space-md);
+  margin-bottom: var(--rs-space-sm);
+}
+.rs-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--rs-border-strong), transparent 65%);
+  border-radius: var(--rs-radius-sm) var(--rs-radius-sm) 0 0;
+}
+.rs-card--raised { background: var(--rs-surface-raised); }
+.rs-card__title {
+  font-size: var(--rs-text-md);
+  font-weight: 600;
+  color: var(--rs-text);
+  margin: 0;
+}
+.rs-card__body { color: var(--rs-text-muted); font-size: var(--rs-text-sm); }
+.rs-card__foot {
+  border-top: 1px solid var(--rs-border);
+  margin-top: var(--rs-space-md);
+  padding-top: var(--rs-space-sm);
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-faint);
+}
+
+/* The accent rail is what makes a wall of cards scannable: colour is on the edge, not the fill,
+   so twelve HIGH findings do not turn the page into a warning light. */
+.rs-card--accented { border-left: 3px solid var(--rs-accent); }
+
+.rs-metric { display: flex; flex-direction: column; gap: var(--rs-space-xs); }
+.rs-metric__value {
+  font-size: var(--rs-text-xl);
+  font-weight: 650;
+  color: var(--rs-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.rs-metric__delta { font-size: var(--rs-text-xs); font-weight: 600; }
+.rs-metric__hint { font-size: var(--rs-text-xs); color: var(--rs-text-faint); }
+
+.rs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--rs-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+.rs-badge__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: 0 0 auto;
+}
+
+.rs-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px; height: 74px;
+  border-radius: var(--rs-radius-lg);
+  font-size: var(--rs-text-hero);
+  font-weight: 700;
+  border: 2px solid currentColor;
+  line-height: 1;
+}
+
+.rs-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rs-border);
+  overflow: hidden;
+}
+.rs-bar__fill { height: 100%; border-radius: 999px; transition: width 240ms ease; }
+.rs-bar__meta {
+  display: flex; justify-content: space-between;
+  font-size: var(--rs-text-xs); color: var(--rs-text-faint);
+  margin-top: var(--rs-space-xs);
+}
+
+.rs-stack { display: flex; flex-direction: column; gap: var(--rs-space-xs); }
+.rs-row { display: flex; align-items: center; gap: var(--rs-space-sm); flex-wrap: wrap; }
+.rs-row--split { justify-content: space-between; }
+
+.rs-log {
+  background: var(--rs-bg);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  font-family: var(--rs-font-mono);
+  font-size: var(--rs-text-xs);
+  line-height: 1.55;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: var(--rs-space-sm) var(--rs-space-md);
+}
+.rs-log__line { display: flex; gap: var(--rs-space-sm); white-space: pre-wrap; word-break: break-word; }
+.rs-log__ts { color: var(--rs-text-faint); flex: 0 0 auto; }
+.rs-log__lvl { flex: 0 0 62px; font-weight: 650; }
+
+.rs-timeline { position: relative; padding-left: var(--rs-space-lg); }
+.rs-timeline::before {
+  content: ""; position: absolute; left: 5px; top: 4px; bottom: 4px;
+  width: 2px; background: var(--rs-border);
+}
+.rs-timeline__item { position: relative; padding-bottom: var(--rs-space-md); }
+.rs-timeline__dot {
+  position: absolute; left: calc(-1 * var(--rs-space-lg) + 1px); top: 4px;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--rs-bg);
+}
+.rs-timeline__title { font-size: var(--rs-text-sm); font-weight: 600; color: var(--rs-text); }
+.rs-timeline__meta { font-size: var(--rs-text-xs); color: var(--rs-text-faint); }
+
+.rs-empty {
+  border: 1px dashed var(--rs-border-strong);
+  border-radius: var(--rs-radius-md);
+  padding: var(--rs-space-xl) var(--rs-space-lg);
+  text-align: center;
+  color: var(--rs-text-muted);
+}
+.rs-empty__icon { font-size: 1.7rem; opacity: 0.75; }
+.rs-empty__title { font-size: var(--rs-text-md); font-weight: 600; color: var(--rs-text); margin-top: var(--rs-space-sm); }
+.rs-empty__body { font-size: var(--rs-text-sm); margin-top: var(--rs-space-xs); }
+
+.rs-toast {
+  border-radius: var(--rs-radius-sm);
+  border-left: 3px solid currentColor;
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  font-size: var(--rs-text-sm);
+  margin-bottom: var(--rs-space-sm);
+}
+
+.rs-overlay {
+  display: flex; align-items: center; gap: var(--rs-space-sm);
+  border: 1px solid var(--rs-border);
+  background: var(--rs-surface);
+  border-radius: var(--rs-radius-md);
+  padding: var(--rs-space-md) var(--rs-space-lg);
+  color: var(--rs-text-muted);
+  font-size: var(--rs-text-sm);
+}
+.rs-overlay__spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--rs-border-strong);
+  border-top-color: var(--rs-accent);
+  animation: rs-spin 800ms linear infinite;
+}
+@keyframes rs-spin { to { transform: rotate(360deg); } }
+
+.rs-kv { display: grid; grid-template-columns: minmax(90px, 32%) 1fr; gap: var(--rs-space-xs) var(--rs-space-md); }
+.rs-kv__k { color: var(--rs-text-faint); font-size: var(--rs-text-xs); text-transform: uppercase; letter-spacing: var(--rs-tracking); }
+.rs-kv__v { color: var(--rs-text); font-size: var(--rs-text-sm); word-break: break-word; }
+.rs-mono { font-family: var(--rs-font-mono); font-size: var(--rs-text-xs); }
+
+.rs-banner {
+  border-radius: var(--rs-radius-sm);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  font-size: var(--rs-text-sm);
+  border: 1px solid currentColor;
+  margin-bottom: var(--rs-space-md);
+}
+
+/* The page header, as a console toolbar rather than a document title.
+ *
+ * A tool announces which module you are in; it does not present a headline. So: a left accent rule
+ * marking the active region, a compressed title, and the subtitle inline beside it rather than
+ * stacked beneath -- which recovers a whole line of vertical space on every page, on a screen where
+ * the operator wants rows. */
+.rs-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--rs-space-md);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--rs-border);
+  border-left: 3px solid var(--rs-accent);
+  padding: 0 0 var(--rs-space-sm) var(--rs-space-md);
+  margin-bottom: var(--rs-space-md);
+}
+.rs-header__title {
+  font-size: var(--rs-text-lg);
+  font-weight: 650;
+  color: var(--rs-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.rs-header__sub {
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-faint);
+  margin: 0;
+}
+
+/* A horizontal strip of key/value readouts -- the status rail a tool carries under its toolbar.
+   Monospaced values so columns of numbers align down the page. */
+.rs-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rs-space-lg);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  margin-bottom: var(--rs-space-md);
+}
+.rs-rail__item { display: flex; flex-direction: column; gap: 1px; }
+.rs-rail__label {
+  font-size: var(--rs-text-xs);
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint);
+}
+.rs-rail__value {
+  font-family: var(--rs-font-mono);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section headings inside a panel: a rule with a label sitting on it, the way a grouped control
+   panel is labelled in an engineering tool. */
+.rs-section {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-sm);
+  margin: var(--rs-space-lg) 0 var(--rs-space-sm);
+  font-size: var(--rs-text-xs);
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint);
+  font-weight: 600;
+}
+.rs-section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rs-border);
+}
+
+
+.rs-table-wrap {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  overflow: auto;
+  background: var(--rs-surface);
+  margin-bottom: var(--rs-space-md);
+}
+
+.rs-table {
+  /* The whole point: widths come from the stylesheet, and a user cannot drag them. */
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--rs-text-sm);
+}
+
+.rs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--rs-surface-raised);
+  border-bottom: 1px solid var(--rs-border-strong);
+  color: var(--rs-text-faint);
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.rs-table tbody td {
+  border-bottom: 1px solid var(--rs-border);
+  padding: 9px 12px;
+  color: var(--rs-text);
+  /* Long ids and long titles must not blow the column open; the full value is in the tooltip. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rs-table tbody tr:last-child td { border-bottom: none; }
+.rs-table tbody tr:hover td { background: var(--rs-surface-raised); }
+
+.rs-t-mono { font-family: var(--rs-font-mono); font-size: var(--rs-text-xs); }
+.rs-t-num  { text-align: right; font-variant-numeric: tabular-nums; }
+
+.rs-t-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  letter-spacing: .02em;
+  background: var(--rs-neutral); color: #fff;
+}
+
+/* Outcome and severity words, coloured from the same palette the rest of the console uses. */
+.rs-t-pill--fail, .rs-t-pill--critical, .rs-t-pill--f { background: var(--rs-critical); }
+.rs-t-pill--error, .rs-t-pill--high, .rs-t-pill--d    { background: var(--rs-high); }
+.rs-t-pill--inconclusive, .rs-t-pill--medium,
+.rs-t-pill--warning, .rs-t-pill--c                    { background: var(--rs-medium); color: #1a1a1a; }
+.rs-t-pill--pass, .rs-t-pill--completed,
+.rs-t-pill--active, .rs-t-pill--yes, .rs-t-pill--a    { background: var(--rs-ok); }
+.rs-t-pill--low, .rs-t-pill--b                        { background: var(--rs-low); }
+.rs-t-pill--skipped, .rs-t-pill--informational,
+.rs-t-pill--info, .rs-t-pill--no, .rs-t-pill--refused,
+.rs-t-pill--cancelled, .rs-t-pill--not-run            { background: var(--rs-neutral); }
+.rs-t-pill--running, .rs-t-pill--queued               { background: var(--rs-info); }
+
+
+/* Streamlit's own theme variables, driven from the active palette. This is what makes the runtime
+   toggle repaint NATIVE widgets, not just our components. */
+:root, .stApp {
+  --background-color: var(--rs-bg);
+  --secondary-background-color: var(--rs-surface);
+  --text-color: var(--rs-text);
+  --primary-color: var(--rs-accent);
+  --font: var(--rs-font-sans);
+}
+
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  font-family: var(--rs-font-sans);
+}
+[data-testid="stHeader"] { border-bottom: 1px solid var(--rs-border); }
+[data-testid="stToolbar"] { right: 8px; }
+
+/* Wider and tighter. A console uses the whole screen -- capping at 1500px on a 1920 display wastes
+   a fifth of the width the operator is trying to read grids in -- and the top padding was pushing
+   the first panel down for no reason. */
+section.main > div.block-container,
+[data-testid="stMainBlockContainer"] {
+  padding-top: 1.1rem;
+  padding-bottom: 2rem;
+  max-width: 1760px;
+}
+
+/* Vertical rhythm: Streamlit's default gaps between blocks are set for prose. At console density
+   they leave the page looking half-empty while the third panel sits below the fold. */
+[data-testid="stVerticalBlock"] { gap: var(--rs-space-sm); }
+[data-testid="stHorizontalBlock"] { gap: var(--rs-space-md); }
+hr { margin: var(--rs-space-md) 0; border-color: var(--rs-border); }
+
+/* Bordered containers become panels, matching `.rs-card`. */
+[data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: var(--rs-radius-sm) !important;
+  border-color: var(--rs-border) !important;
+  background: var(--rs-surface);
+}
+
+/* Metrics: tabular figures and a compressed label, so a row of counters reads as instrumentation
+   rather than as a set of headlines. */
+[data-testid="stMetric"] {
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+}
+[data-testid="stMetricLabel"] {
+  font-size: var(--rs-text-xs) !important;
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint) !important;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--rs-text); font-family: var(--rs-font-sans); }
+p, span, label, li, div { color: var(--rs-text); }
+a, a:visited { color: var(--rs-accent); }
+small, .stCaption, [data-testid="stCaptionContainer"] { color: var(--rs-text-muted) !important; }
+
+/* -- sidebar: the module rail --------------------------------------------------------------- */
+[data-testid="stSidebar"] {
+  background: var(--rs-surface);
+  border-right: 1px solid var(--rs-border-strong);
+}
+[data-testid="stSidebar"] * { color: var(--rs-text); }
+[data-testid="stSidebar"] .rs-label { padding-left: 2px; }
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 2px; }
+
+/* Navigation entries read as a list of modules, left-aligned and tightly stacked, with the active
+   one marked by a left rule. Centred, evenly-spaced buttons read as a menu of actions -- these are
+   places, not actions. */
+[data-testid="stSidebar"] .stButton > button {
+  text-align: left;
+  justify-content: flex-start;
+  font-weight: 500;
+  padding: 0.3rem 0.55rem;
+  border-color: transparent;
+  background: transparent;
+  border-left: 2px solid transparent;
+  border-radius: var(--rs-radius-sm);
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: var(--rs-surface-raised);
+  border-color: transparent;
+  border-left-color: var(--rs-border-strong);
+}
+[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+  background: var(--rs-accent-soft);
+  color: var(--rs-text);
+  border-color: transparent;
+  border-left: 2px solid var(--rs-accent);
+  font-weight: 650;
+}
+
+/* -- inputs -------------------------------------------------------------------------------- */
+input, textarea, select,
+.stTextInput input, .stNumberInput input, .stTextArea textarea, .stDateInput input {
+  background: var(--rs-surface-raised) !important;
+  color: var(--rs-text) !important;
+  border: 1px solid var(--rs-border) !important;
+  border-radius: var(--rs-radius-sm) !important;
+}
+input::placeholder, textarea::placeholder { color: var(--rs-text-faint) !important; }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--rs-accent) !important;
+  box-shadow: 0 0 0 2px var(--rs-accent-soft) !important;
+}
+[data-baseweb="select"] > div, [data-baseweb="input"] > div, [data-baseweb="textarea"] > div {
+  background: var(--rs-surface-raised) !important;
+  border-color: var(--rs-border) !important;
+  color: var(--rs-text) !important;
+  border-radius: var(--rs-radius-sm) !important;
+}
+[data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"] {
+  background: var(--rs-surface-raised) !important;
+  border: 1px solid var(--rs-border) !important;
+}
+[role="option"] { color: var(--rs-text) !important; }
+[role="option"]:hover { background: var(--rs-accent-soft) !important; }
+
+/* -- buttons ------------------------------------------------------------------------------- */
+/* Compact, square-ish, and uniform -- toolbar controls rather than call-to-action buttons. */
+.stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+  border-radius: var(--rs-radius-sm);
+  font-weight: 600;
+  font-size: var(--rs-text-sm);
+  padding: 0.32rem 0.7rem;
+  min-height: 0;
+  border: 1px solid var(--rs-border-strong);
+  background: var(--rs-surface-raised);
+  color: var(--rs-text);
+  transition: background .12s ease, border-color .12s ease;
+}
+.stButton > button:hover, .stDownloadButton > button:hover, .stFormSubmitButton > button:hover {
+  border-color: var(--rs-accent);
+  background: var(--rs-accent-soft);
+}
+.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {
+  background: var(--rs-accent);
+  border-color: var(--rs-accent);
+  color: #fff;
+}
+
+/* -- containers ---------------------------------------------------------------------------- */
+[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; color: var(--rs-text); }
+[data-testid="stMetricLabel"] { color: var(--rs-text-faint); }
+div[data-testid="stExpander"] details {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  background: var(--rs-surface);
+}
+div[data-testid="stExpander"] summary { color: var(--rs-text); }
+[data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: var(--rs-radius-md);
+}
+.stTabs [data-baseweb="tab-list"] { border-bottom: 1px solid var(--rs-border); gap: 2px; }
+.stTabs [data-baseweb="tab"] { color: var(--rs-text-muted); }
+.stTabs [aria-selected="true"] { color: var(--rs-accent); }
+
+/* -- code and evidence --------------------------------------------------------------------- */
+code, pre, .stCode, [data-testid="stCode"] {
+  background: var(--rs-surface-raised) !important;
+  color: var(--rs-text) !important;
+  border-radius: var(--rs-radius-sm);
+  font-family: var(--rs-font-mono) !important;
+}
+[data-testid="stCode"] { border: 1px solid var(--rs-border); }
+
+/* -- alerts -------------------------------------------------------------------------------- */
+[data-testid="stAlert"] {
+  background: var(--rs-surface-raised);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  color: var(--rs-text);
+}
+
+/* -- the interactive grid, for anywhere it is still used ------------------------------------ */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+}
+
+/* -- scrollbars, so the dark theme is dark all the way to the edges ------------------------- */
+* { scrollbar-color: var(--rs-border-strong) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--rs-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--rs-bg);
+}
+
+#MainMenu, footer { visibility: hidden; }
+
+/* Responsive: the four-across metric strip becomes two-across, then one, rather than shrinking
+   numbers until they are unreadable. */
+@media (max-width: 1100px) { section.main > div.block-container { padding-left: 1rem; padding-right: 1rem; } }
+@media (max-width: 640px) { .rs-kv { grid-template-columns: 1fr; } .rs-grade { width: 58px; height: 58px; font-size: var(--rs-text-xl); } }
+
+</style>
+<div class="wrap dark">
+  <aside class="rail">
+    <div class="brand">RAGSTRIKE</div>
+    <div class="rs-metric__hint"><span style="color:#31c48d">●</span> connected</div>
+    <div class="rs-metric__hint" style="word-break:break-all">http://127.0.0.1:8000/api/v1</div>
+    <div class="rs-label" style="margin-top:14px">OPERATE</div><button class="nav">◈  Dashboard</button><button class="nav">▶  Scan Center</button><button class="nav">◇  Targets</button><button class="nav">○  Plugins</button><button class="nav">▤  Reports</button><button class="nav on">◷  Scan History</button><button class="nav">●  System Status</button><button class="nav">⚙  Settings</button><button class="nav">ⓘ  About</button>
+  </aside>
+  <main>
+    <div class="rs-header"><div class="rs-header__title">Scan History</div>
+      <div class="rs-header__sub">Every scan RAGStrike has run, and how they compare.</div></div>
+    <div class="rs-rail"><div class="rs-rail__item"><div class="rs-rail__label">Target</div><div class="rs-rail__value">vulnerable-rag</div></div><div class="rs-rail__item"><div class="rs-rail__label">Profile</div><div class="rs-rail__value">standard</div></div><div class="rs-rail__item"><div class="rs-rail__label">Coverage</div><div class="rs-rail__value">100%</div></div><div class="rs-rail__item"><div class="rs-rail__label">Executed</div><div class="rs-rail__value">9</div></div><div class="rs-rail__item"><div class="rs-rail__label">Failed</div><div class="rs-rail__value">4</div></div><div class="rs-rail__item"><div class="rs-rail__label">Errored</div><div class="rs-rail__value">0</div></div><div class="rs-rail__item"><div class="rs-rail__label">Duration</div><div class="rs-rail__value">26m 02s</div></div></div>
+    <div class="grid4"><div class="rs-card"><div class="rs-metric"><div class="rs-label">Packs executed</div><div class="rs-metric__value">9</div><div class="rs-metric__hint">of 9 installed</div></div></div><div class="rs-card"><div class="rs-metric"><div class="rs-label">Findings</div><div class="rs-metric__value">4</div><div class="rs-metric__hint">failing packs</div></div></div><div class="rs-card"><div class="rs-metric"><div class="rs-label">Coverage</div><div class="rs-metric__value">100%</div><div class="rs-metric__hint">nothing skipped</div></div></div><div class="rs-card"><div class="rs-metric"><div class="rs-label">Errors</div><div class="rs-metric__value">0</div><div class="rs-metric__hint">tool never broke</div></div></div></div>
+    <div class="rs-section">Scans (9 packs)</div>
+    <div class="rs-table-wrap"><table class="rs-table"><thead><tr><th class="rs-t-col">Pack</th><th class="rs-t-col">Result</th><th class="rs-t-col">Severity</th><th class="rs-t-col rs-t-mono rs-t-num">Risk</th><th class="rs-t-col rs-t-mono rs-t-num">Findings</th><th class="rs-t-col rs-t-mono rs-t-num">Payloads</th><th class="rs-t-col rs-t-num">Duration</th></tr></thead><tbody><tr><td class="rs-t-col">prompt-injection</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--high">HIGH</span></td><td class="rs-t-col rs-t-mono rs-t-num">7.4</td><td class="rs-t-col rs-t-mono rs-t-num">14</td><td class="rs-t-col rs-t-mono rs-t-num">17</td><td class="rs-t-col rs-t-num">5m 50s</td></tr><tr><td class="rs-t-col">context-separation</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--medium">MEDIUM</span></td><td class="rs-t-col rs-t-mono rs-t-num">5.1</td><td class="rs-t-col rs-t-mono rs-t-num">3</td><td class="rs-t-col rs-t-mono rs-t-num">4</td><td class="rs-t-col rs-t-num">42s</td></tr><tr><td class="rs-t-col">instruction-priority</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--medium">MEDIUM</span></td><td class="rs-t-col rs-t-mono rs-t-num">4.8</td><td class="rs-t-col rs-t-mono rs-t-num">2</td><td class="rs-t-col rs-t-mono rs-t-num">4</td><td class="rs-t-col rs-t-num">1m 11s</td></tr><tr><td class="rs-t-col">prompt-boundary</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--low">LOW</span></td><td class="rs-t-col rs-t-mono rs-t-num">3.2</td><td class="rs-t-col rs-t-mono rs-t-num">1</td><td class="rs-t-col rs-t-mono rs-t-num">4</td><td class="rs-t-col rs-t-num">4m 08s</td></tr><tr><td class="rs-t-col">prompt-leakage</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--inconclusive">INCONCLUSIVE</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">18</td><td class="rs-t-col rs-t-num">7m 12s</td></tr><tr><td class="rs-t-col">context-poisoning</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">8</td><td class="rs-t-col rs-t-num">3m 35s</td></tr><tr><td class="rs-t-col">source-attribution</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">3</td><td class="rs-t-col rs-t-num">1m 10s</td></tr><tr><td class="rs-t-col">retrieval-consistency</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">2</td><td class="rs-t-col rs-t-num">1m 47s</td></tr><tr><td class="rs-t-col">dummy-attack</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">1</td><td class="rs-t-col rs-t-num">23s</td></tr></tbody></table></div>
+    <div class="rs-section">Detail</div>
+    <div class="row2">
+      <div><div class="rs-stack"><div class="rs-grade" style="color:#f7b955">D</div><div class="rs-metric__hint">coverage 100%</div></div></div>
+      <div><div class="rs-card"><div class="rs-card__title">vulnerable-rag · standard</div><div class="rs-kv"><div class="rs-kv__k">Target</div><div class="rs-kv__v">vulnerable-rag</div><div class="rs-kv__k">Profile</div><div class="rs-kv__v">standard</div><div class="rs-kv__k">Result</div><div class="rs-kv__v">FAIL</div><div class="rs-kv__k">Risk</div><div class="rs-kv__v">7.4 / 10</div><div class="rs-kv__k">Duration</div><div class="rs-kv__v">26m 02s</div><div class="rs-kv__k">Plugins executed</div><div class="rs-kv__v">9</div><div class="rs-kv__k">Coverage</div><div class="rs-kv__v">100%</div></div></div></div>
+    </div>
+    <div class="rs-section">Subsystems</div>
+    <div class="grid4"><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">fastapi</span></div><div class="rs-card__body">0 scans in flight</div></div><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">ollama</span></div><div class="rs-card__body">2 models available</div></div><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">sqlite</span></div><div class="rs-card__body">OK</div></div><div class="rs-card rs-card--accented" style="border-left-color:#7d8fa1"><div class="rs-row"><span style="color:#7d8fa1;font-size:1.05rem">◌</span><span class="rs-card__title">chromadb</span></div><div class="rs-card__body">not used by the scanner</div></div><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">analyzer</span></div><div class="rs-card__body">rules and scoring loaded</div></div><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">reporting</span></div><div class="rs-card__body">4 formats</div></div><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">plugin_framework</span></div><div class="rs-card__body">9 active, 0 refused</div></div><div class="rs-card rs-card--accented" style="border-left-color:#31c48d"><div class="rs-row"><span style="color:#31c48d;font-size:1.05rem">●</span><span class="rs-card__title">sdk</span></div><div class="rs-card__body">plugin API</div></div></div>
+  </main>
+</div>
+<style>
+body{margin:0;background:var(--rs-bg)}
+.wrap{display:grid;grid-template-columns:236px 1fr;min-height:100vh;font-family:var(--rs-font-sans)}
+.rail{background:var(--rs-surface);border-right:1px solid var(--rs-border-strong);padding:14px 12px}
+.brand{font-weight:700;letter-spacing:.14em;font-size:.82rem;color:var(--rs-accent);margin-bottom:8px}
+main{padding:16px 22px;max-width:1500px}
+.nav{display:block;width:100%;text-align:left;background:transparent;color:var(--rs-text);
+  border:1px solid transparent;border-left:2px solid transparent;border-radius:4px;
+  padding:.3rem .55rem;font-size:.79rem;font-weight:500;margin-bottom:2px;cursor:pointer}
+.nav.on{background:var(--rs-accent-soft);border-left:2px solid var(--rs-accent);font-weight:650}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.row2{display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:start}
+</style>
+<h2 style="font-family:system-ui;margin:34px 20px 6px;color:#111">RAGStrike — light</h2><style>
+:root {
+  --rs-bg: #f5f7fa;
+  --rs-surface: #ffffff;
+  --rs-surface-raised: #fbfcfe;
+  --rs-border: #dde3ea;
+  --rs-border-strong: #c2cdd8;
+  --rs-text: #111820;
+  --rs-text-muted: #4a5b6b;
+  --rs-text-faint: #7c8b99;
+  --rs-accent: #0b6bcb;
+  --rs-accent-soft: rgba(11, 107, 203, 0.10);
+  --rs-ok: #0f8a5f;
+  --rs-warn: #b26a00;
+  --rs-danger: #c62828;
+  --rs-info: #0b6bcb;
+  --rs-neutral: #5f6f7e;
+  --rs-critical: #c62828;
+  --rs-high: #d1541f;
+  --rs-medium: #b26a00;
+  --rs-low: #1565c0;
+  --rs-informational: #5f6f7e;
+  --rs-space-xs: 3px;
+  --rs-space-sm: 6px;
+  --rs-space-md: 10px;
+  --rs-space-lg: 16px;
+  --rs-space-xl: 24px;
+  --rs-radius-sm: 4px;
+  --rs-radius-md: 6px;
+  --rs-radius-lg: 8px;
+  --rs-font-mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', ui-monospace, 'DejaVu Sans Mono', 'Liberation Mono', Consolas, 'Courier New', monospace;
+  --rs-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', 'Liberation Sans', Arial, sans-serif;
+  --rs-text-xs: 0.70rem;
+  --rs-text-sm: 0.79rem;
+  --rs-text-md: 0.88rem;
+  --rs-text-lg: 1.02rem;
+  --rs-text-xl: 1.30rem;
+  --rs-text-hero: 1.75rem;
+  --rs-tracking: 0.08em;
+}
+
+.rs-label {
+  font-size: var(--rs-text-xs);
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint);
+  font-weight: 600;
+}
+
+/* Panels, not cards.
+ *
+ * A card floats; a panel is a bounded region of a workspace. The distinction is the whole visual
+ * difference between a dashboard and a tool: Burp Suite, Wireshark and a SIEM are built from
+ * abutting panels with hard edges and their own header strips, so the eye can tell instantly which
+ * region it is reading. Softer, floating cards with generous padding read as a web page.
+ *
+ * A top accent rule replaces the drop shadow -- shadows imply layers above the page, which is the
+ * wrong metaphor for a fixed workspace. */
+.rs-card {
+  position: relative;
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  padding: var(--rs-space-md) var(--rs-space-md);
+  margin-bottom: var(--rs-space-sm);
+}
+.rs-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--rs-border-strong), transparent 65%);
+  border-radius: var(--rs-radius-sm) var(--rs-radius-sm) 0 0;
+}
+.rs-card--raised { background: var(--rs-surface-raised); }
+.rs-card__title {
+  font-size: var(--rs-text-md);
+  font-weight: 600;
+  color: var(--rs-text);
+  margin: 0;
+}
+.rs-card__body { color: var(--rs-text-muted); font-size: var(--rs-text-sm); }
+.rs-card__foot {
+  border-top: 1px solid var(--rs-border);
+  margin-top: var(--rs-space-md);
+  padding-top: var(--rs-space-sm);
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-faint);
+}
+
+/* The accent rail is what makes a wall of cards scannable: colour is on the edge, not the fill,
+   so twelve HIGH findings do not turn the page into a warning light. */
+.rs-card--accented { border-left: 3px solid var(--rs-accent); }
+
+.rs-metric { display: flex; flex-direction: column; gap: var(--rs-space-xs); }
+.rs-metric__value {
+  font-size: var(--rs-text-xl);
+  font-weight: 650;
+  color: var(--rs-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.rs-metric__delta { font-size: var(--rs-text-xs); font-weight: 600; }
+.rs-metric__hint { font-size: var(--rs-text-xs); color: var(--rs-text-faint); }
+
+.rs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--rs-text-xs);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+.rs-badge__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: 0 0 auto;
+}
+
+.rs-grade {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px; height: 74px;
+  border-radius: var(--rs-radius-lg);
+  font-size: var(--rs-text-hero);
+  font-weight: 700;
+  border: 2px solid currentColor;
+  line-height: 1;
+}
+
+.rs-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--rs-border);
+  overflow: hidden;
+}
+.rs-bar__fill { height: 100%; border-radius: 999px; transition: width 240ms ease; }
+.rs-bar__meta {
+  display: flex; justify-content: space-between;
+  font-size: var(--rs-text-xs); color: var(--rs-text-faint);
+  margin-top: var(--rs-space-xs);
+}
+
+.rs-stack { display: flex; flex-direction: column; gap: var(--rs-space-xs); }
+.rs-row { display: flex; align-items: center; gap: var(--rs-space-sm); flex-wrap: wrap; }
+.rs-row--split { justify-content: space-between; }
+
+.rs-log {
+  background: var(--rs-bg);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  font-family: var(--rs-font-mono);
+  font-size: var(--rs-text-xs);
+  line-height: 1.55;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: var(--rs-space-sm) var(--rs-space-md);
+}
+.rs-log__line { display: flex; gap: var(--rs-space-sm); white-space: pre-wrap; word-break: break-word; }
+.rs-log__ts { color: var(--rs-text-faint); flex: 0 0 auto; }
+.rs-log__lvl { flex: 0 0 62px; font-weight: 650; }
+
+.rs-timeline { position: relative; padding-left: var(--rs-space-lg); }
+.rs-timeline::before {
+  content: ""; position: absolute; left: 5px; top: 4px; bottom: 4px;
+  width: 2px; background: var(--rs-border);
+}
+.rs-timeline__item { position: relative; padding-bottom: var(--rs-space-md); }
+.rs-timeline__dot {
+  position: absolute; left: calc(-1 * var(--rs-space-lg) + 1px); top: 4px;
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid var(--rs-bg);
+}
+.rs-timeline__title { font-size: var(--rs-text-sm); font-weight: 600; color: var(--rs-text); }
+.rs-timeline__meta { font-size: var(--rs-text-xs); color: var(--rs-text-faint); }
+
+.rs-empty {
+  border: 1px dashed var(--rs-border-strong);
+  border-radius: var(--rs-radius-md);
+  padding: var(--rs-space-xl) var(--rs-space-lg);
+  text-align: center;
+  color: var(--rs-text-muted);
+}
+.rs-empty__icon { font-size: 1.7rem; opacity: 0.75; }
+.rs-empty__title { font-size: var(--rs-text-md); font-weight: 600; color: var(--rs-text); margin-top: var(--rs-space-sm); }
+.rs-empty__body { font-size: var(--rs-text-sm); margin-top: var(--rs-space-xs); }
+
+.rs-toast {
+  border-radius: var(--rs-radius-sm);
+  border-left: 3px solid currentColor;
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  font-size: var(--rs-text-sm);
+  margin-bottom: var(--rs-space-sm);
+}
+
+.rs-overlay {
+  display: flex; align-items: center; gap: var(--rs-space-sm);
+  border: 1px solid var(--rs-border);
+  background: var(--rs-surface);
+  border-radius: var(--rs-radius-md);
+  padding: var(--rs-space-md) var(--rs-space-lg);
+  color: var(--rs-text-muted);
+  font-size: var(--rs-text-sm);
+}
+.rs-overlay__spinner {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--rs-border-strong);
+  border-top-color: var(--rs-accent);
+  animation: rs-spin 800ms linear infinite;
+}
+@keyframes rs-spin { to { transform: rotate(360deg); } }
+
+.rs-kv { display: grid; grid-template-columns: minmax(90px, 32%) 1fr; gap: var(--rs-space-xs) var(--rs-space-md); }
+.rs-kv__k { color: var(--rs-text-faint); font-size: var(--rs-text-xs); text-transform: uppercase; letter-spacing: var(--rs-tracking); }
+.rs-kv__v { color: var(--rs-text); font-size: var(--rs-text-sm); word-break: break-word; }
+.rs-mono { font-family: var(--rs-font-mono); font-size: var(--rs-text-xs); }
+
+.rs-banner {
+  border-radius: var(--rs-radius-sm);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  font-size: var(--rs-text-sm);
+  border: 1px solid currentColor;
+  margin-bottom: var(--rs-space-md);
+}
+
+/* The page header, as a console toolbar rather than a document title.
+ *
+ * A tool announces which module you are in; it does not present a headline. So: a left accent rule
+ * marking the active region, a compressed title, and the subtitle inline beside it rather than
+ * stacked beneath -- which recovers a whole line of vertical space on every page, on a screen where
+ * the operator wants rows. */
+.rs-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--rs-space-md);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--rs-border);
+  border-left: 3px solid var(--rs-accent);
+  padding: 0 0 var(--rs-space-sm) var(--rs-space-md);
+  margin-bottom: var(--rs-space-md);
+}
+.rs-header__title {
+  font-size: var(--rs-text-lg);
+  font-weight: 650;
+  color: var(--rs-text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.rs-header__sub {
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-faint);
+  margin: 0;
+}
+
+/* A horizontal strip of key/value readouts -- the status rail a tool carries under its toolbar.
+   Monospaced values so columns of numbers align down the page. */
+.rs-rail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--rs-space-lg);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  margin-bottom: var(--rs-space-md);
+}
+.rs-rail__item { display: flex; flex-direction: column; gap: 1px; }
+.rs-rail__label {
+  font-size: var(--rs-text-xs);
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint);
+}
+.rs-rail__value {
+  font-family: var(--rs-font-mono);
+  font-size: var(--rs-text-sm);
+  color: var(--rs-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section headings inside a panel: a rule with a label sitting on it, the way a grouped control
+   panel is labelled in an engineering tool. */
+.rs-section {
+  display: flex;
+  align-items: center;
+  gap: var(--rs-space-sm);
+  margin: var(--rs-space-lg) 0 var(--rs-space-sm);
+  font-size: var(--rs-text-xs);
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint);
+  font-weight: 600;
+}
+.rs-section::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rs-border);
+}
+
+
+.rs-table-wrap {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  overflow: auto;
+  background: var(--rs-surface);
+  margin-bottom: var(--rs-space-md);
+}
+
+.rs-table {
+  /* The whole point: widths come from the stylesheet, and a user cannot drag them. */
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--rs-text-sm);
+}
+
+.rs-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--rs-surface-raised);
+  border-bottom: 1px solid var(--rs-border-strong);
+  color: var(--rs-text-faint);
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 12px;
+  white-space: nowrap;
+}
+
+.rs-table tbody td {
+  border-bottom: 1px solid var(--rs-border);
+  padding: 9px 12px;
+  color: var(--rs-text);
+  /* Long ids and long titles must not blow the column open; the full value is in the tooltip. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rs-table tbody tr:last-child td { border-bottom: none; }
+.rs-table tbody tr:hover td { background: var(--rs-surface-raised); }
+
+.rs-t-mono { font-family: var(--rs-font-mono); font-size: var(--rs-text-xs); }
+.rs-t-num  { text-align: right; font-variant-numeric: tabular-nums; }
+
+.rs-t-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--rs-text-xs);
+  font-weight: 600;
+  letter-spacing: .02em;
+  background: var(--rs-neutral); color: #fff;
+}
+
+/* Outcome and severity words, coloured from the same palette the rest of the console uses. */
+.rs-t-pill--fail, .rs-t-pill--critical, .rs-t-pill--f { background: var(--rs-critical); }
+.rs-t-pill--error, .rs-t-pill--high, .rs-t-pill--d    { background: var(--rs-high); }
+.rs-t-pill--inconclusive, .rs-t-pill--medium,
+.rs-t-pill--warning, .rs-t-pill--c                    { background: var(--rs-medium); color: #1a1a1a; }
+.rs-t-pill--pass, .rs-t-pill--completed,
+.rs-t-pill--active, .rs-t-pill--yes, .rs-t-pill--a    { background: var(--rs-ok); }
+.rs-t-pill--low, .rs-t-pill--b                        { background: var(--rs-low); }
+.rs-t-pill--skipped, .rs-t-pill--informational,
+.rs-t-pill--info, .rs-t-pill--no, .rs-t-pill--refused,
+.rs-t-pill--cancelled, .rs-t-pill--not-run            { background: var(--rs-neutral); }
+.rs-t-pill--running, .rs-t-pill--queued               { background: var(--rs-info); }
+
+
+/* Streamlit's own theme variables, driven from the active palette. This is what makes the runtime
+   toggle repaint NATIVE widgets, not just our components. */
+:root, .stApp {
+  --background-color: var(--rs-bg);
+  --secondary-background-color: var(--rs-surface);
+  --text-color: var(--rs-text);
+  --primary-color: var(--rs-accent);
+  --font: var(--rs-font-sans);
+}
+
+html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  font-family: var(--rs-font-sans);
+}
+[data-testid="stHeader"] { border-bottom: 1px solid var(--rs-border); }
+[data-testid="stToolbar"] { right: 8px; }
+
+/* Wider and tighter. A console uses the whole screen -- capping at 1500px on a 1920 display wastes
+   a fifth of the width the operator is trying to read grids in -- and the top padding was pushing
+   the first panel down for no reason. */
+section.main > div.block-container,
+[data-testid="stMainBlockContainer"] {
+  padding-top: 1.1rem;
+  padding-bottom: 2rem;
+  max-width: 1760px;
+}
+
+/* Vertical rhythm: Streamlit's default gaps between blocks are set for prose. At console density
+   they leave the page looking half-empty while the third panel sits below the fold. */
+[data-testid="stVerticalBlock"] { gap: var(--rs-space-sm); }
+[data-testid="stHorizontalBlock"] { gap: var(--rs-space-md); }
+hr { margin: var(--rs-space-md) 0; border-color: var(--rs-border); }
+
+/* Bordered containers become panels, matching `.rs-card`. */
+[data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: var(--rs-radius-sm) !important;
+  border-color: var(--rs-border) !important;
+  background: var(--rs-surface);
+}
+
+/* Metrics: tabular figures and a compressed label, so a row of counters reads as instrumentation
+   rather than as a set of headlines. */
+[data-testid="stMetric"] {
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+  padding: var(--rs-space-sm) var(--rs-space-md);
+}
+[data-testid="stMetricLabel"] {
+  font-size: var(--rs-text-xs) !important;
+  letter-spacing: var(--rs-tracking);
+  text-transform: uppercase;
+  color: var(--rs-text-faint) !important;
+}
+
+h1, h2, h3, h4, h5, h6 { color: var(--rs-text); font-family: var(--rs-font-sans); }
+p, span, label, li, div { color: var(--rs-text); }
+a, a:visited { color: var(--rs-accent); }
+small, .stCaption, [data-testid="stCaptionContainer"] { color: var(--rs-text-muted) !important; }
+
+/* -- sidebar: the module rail --------------------------------------------------------------- */
+[data-testid="stSidebar"] {
+  background: var(--rs-surface);
+  border-right: 1px solid var(--rs-border-strong);
+}
+[data-testid="stSidebar"] * { color: var(--rs-text); }
+[data-testid="stSidebar"] .rs-label { padding-left: 2px; }
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 2px; }
+
+/* Navigation entries read as a list of modules, left-aligned and tightly stacked, with the active
+   one marked by a left rule. Centred, evenly-spaced buttons read as a menu of actions -- these are
+   places, not actions. */
+[data-testid="stSidebar"] .stButton > button {
+  text-align: left;
+  justify-content: flex-start;
+  font-weight: 500;
+  padding: 0.3rem 0.55rem;
+  border-color: transparent;
+  background: transparent;
+  border-left: 2px solid transparent;
+  border-radius: var(--rs-radius-sm);
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+  background: var(--rs-surface-raised);
+  border-color: transparent;
+  border-left-color: var(--rs-border-strong);
+}
+[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+  background: var(--rs-accent-soft);
+  color: var(--rs-text);
+  border-color: transparent;
+  border-left: 2px solid var(--rs-accent);
+  font-weight: 650;
+}
+
+/* -- inputs -------------------------------------------------------------------------------- */
+input, textarea, select,
+.stTextInput input, .stNumberInput input, .stTextArea textarea, .stDateInput input {
+  background: var(--rs-surface-raised) !important;
+  color: var(--rs-text) !important;
+  border: 1px solid var(--rs-border) !important;
+  border-radius: var(--rs-radius-sm) !important;
+}
+input::placeholder, textarea::placeholder { color: var(--rs-text-faint) !important; }
+input:focus, textarea:focus, select:focus {
+  border-color: var(--rs-accent) !important;
+  box-shadow: 0 0 0 2px var(--rs-accent-soft) !important;
+}
+[data-baseweb="select"] > div, [data-baseweb="input"] > div, [data-baseweb="textarea"] > div {
+  background: var(--rs-surface-raised) !important;
+  border-color: var(--rs-border) !important;
+  color: var(--rs-text) !important;
+  border-radius: var(--rs-radius-sm) !important;
+}
+[data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"] {
+  background: var(--rs-surface-raised) !important;
+  border: 1px solid var(--rs-border) !important;
+}
+[role="option"] { color: var(--rs-text) !important; }
+[role="option"]:hover { background: var(--rs-accent-soft) !important; }
+
+/* -- buttons ------------------------------------------------------------------------------- */
+/* Compact, square-ish, and uniform -- toolbar controls rather than call-to-action buttons. */
+.stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+  border-radius: var(--rs-radius-sm);
+  font-weight: 600;
+  font-size: var(--rs-text-sm);
+  padding: 0.32rem 0.7rem;
+  min-height: 0;
+  border: 1px solid var(--rs-border-strong);
+  background: var(--rs-surface-raised);
+  color: var(--rs-text);
+  transition: background .12s ease, border-color .12s ease;
+}
+.stButton > button:hover, .stDownloadButton > button:hover, .stFormSubmitButton > button:hover {
+  border-color: var(--rs-accent);
+  background: var(--rs-accent-soft);
+}
+.stButton > button[kind="primary"], .stFormSubmitButton > button[kind="primary"] {
+  background: var(--rs-accent);
+  border-color: var(--rs-accent);
+  color: #fff;
+}
+
+/* -- containers ---------------------------------------------------------------------------- */
+[data-testid="stMetricValue"] { font-variant-numeric: tabular-nums; color: var(--rs-text); }
+[data-testid="stMetricLabel"] { color: var(--rs-text-faint); }
+div[data-testid="stExpander"] details {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  background: var(--rs-surface);
+}
+div[data-testid="stExpander"] summary { color: var(--rs-text); }
+[data-testid="stVerticalBlockBorderWrapper"] {
+  border-radius: var(--rs-radius-md);
+}
+.stTabs [data-baseweb="tab-list"] { border-bottom: 1px solid var(--rs-border); gap: 2px; }
+.stTabs [data-baseweb="tab"] { color: var(--rs-text-muted); }
+.stTabs [aria-selected="true"] { color: var(--rs-accent); }
+
+/* -- code and evidence --------------------------------------------------------------------- */
+code, pre, .stCode, [data-testid="stCode"] {
+  background: var(--rs-surface-raised) !important;
+  color: var(--rs-text) !important;
+  border-radius: var(--rs-radius-sm);
+  font-family: var(--rs-font-mono) !important;
+}
+[data-testid="stCode"] { border: 1px solid var(--rs-border); }
+
+/* -- alerts -------------------------------------------------------------------------------- */
+[data-testid="stAlert"] {
+  background: var(--rs-surface-raised);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+  color: var(--rs-text);
+}
+
+/* -- the interactive grid, for anywhere it is still used ------------------------------------ */
+[data-testid="stDataFrame"] {
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-md);
+}
+
+/* -- scrollbars, so the dark theme is dark all the way to the edges ------------------------- */
+* { scrollbar-color: var(--rs-border-strong) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--rs-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--rs-bg);
+}
+
+#MainMenu, footer { visibility: hidden; }
+
+/* Responsive: the four-across metric strip becomes two-across, then one, rather than shrinking
+   numbers until they are unreadable. */
+@media (max-width: 1100px) { section.main > div.block-container { padding-left: 1rem; padding-right: 1rem; } }
+@media (max-width: 640px) { .rs-kv { grid-template-columns: 1fr; } .rs-grade { width: 58px; height: 58px; font-size: var(--rs-text-xl); } }
+
+</style>
+<div class="wrap light">
+  <aside class="rail">
+    <div class="brand">RAGSTRIKE</div>
+    <div class="rs-metric__hint"><span style="color:#0f8a5f">●</span> connected</div>
+    <div class="rs-metric__hint" style="word-break:break-all">http://127.0.0.1:8000/api/v1</div>
+    <div class="rs-label" style="margin-top:14px">OPERATE</div><button class="nav">◈  Dashboard</button><button class="nav">▶  Scan Center</button><button class="nav">◇  Targets</button><button class="nav">○  Plugins</button><button class="nav">▤  Reports</button><button class="nav on">◷  Scan History</button><button class="nav">●  System Status</button><button class="nav">⚙  Settings</button><button class="nav">ⓘ  About</button>
+  </aside>
+  <main>
+    <div class="rs-header"><div class="rs-header__title">Scan History</div>
+      <div class="rs-header__sub">Every scan RAGStrike has run, and how they compare.</div></div>
+    <div class="rs-rail"><div class="rs-rail__item"><div class="rs-rail__label">Target</div><div class="rs-rail__value">vulnerable-rag</div></div><div class="rs-rail__item"><div class="rs-rail__label">Profile</div><div class="rs-rail__value">standard</div></div><div class="rs-rail__item"><div class="rs-rail__label">Coverage</div><div class="rs-rail__value">100%</div></div><div class="rs-rail__item"><div class="rs-rail__label">Executed</div><div class="rs-rail__value">9</div></div><div class="rs-rail__item"><div class="rs-rail__label">Failed</div><div class="rs-rail__value">4</div></div><div class="rs-rail__item"><div class="rs-rail__label">Errored</div><div class="rs-rail__value">0</div></div><div class="rs-rail__item"><div class="rs-rail__label">Duration</div><div class="rs-rail__value">26m 02s</div></div></div>
+    <div class="grid4"><div class="rs-card"><div class="rs-metric"><div class="rs-label">Packs executed</div><div class="rs-metric__value">9</div><div class="rs-metric__hint">of 9 installed</div></div></div><div class="rs-card"><div class="rs-metric"><div class="rs-label">Findings</div><div class="rs-metric__value">4</div><div class="rs-metric__hint">failing packs</div></div></div><div class="rs-card"><div class="rs-metric"><div class="rs-label">Coverage</div><div class="rs-metric__value">100%</div><div class="rs-metric__hint">nothing skipped</div></div></div><div class="rs-card"><div class="rs-metric"><div class="rs-label">Errors</div><div class="rs-metric__value">0</div><div class="rs-metric__hint">tool never broke</div></div></div></div>
+    <div class="rs-section">Scans (9 packs)</div>
+    <div class="rs-table-wrap"><table class="rs-table"><thead><tr><th class="rs-t-col">Pack</th><th class="rs-t-col">Result</th><th class="rs-t-col">Severity</th><th class="rs-t-col rs-t-mono rs-t-num">Risk</th><th class="rs-t-col rs-t-mono rs-t-num">Findings</th><th class="rs-t-col rs-t-mono rs-t-num">Payloads</th><th class="rs-t-col rs-t-num">Duration</th></tr></thead><tbody><tr><td class="rs-t-col">prompt-injection</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--high">HIGH</span></td><td class="rs-t-col rs-t-mono rs-t-num">7.4</td><td class="rs-t-col rs-t-mono rs-t-num">14</td><td class="rs-t-col rs-t-mono rs-t-num">17</td><td class="rs-t-col rs-t-num">5m 50s</td></tr><tr><td class="rs-t-col">context-separation</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--medium">MEDIUM</span></td><td class="rs-t-col rs-t-mono rs-t-num">5.1</td><td class="rs-t-col rs-t-mono rs-t-num">3</td><td class="rs-t-col rs-t-mono rs-t-num">4</td><td class="rs-t-col rs-t-num">42s</td></tr><tr><td class="rs-t-col">instruction-priority</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--medium">MEDIUM</span></td><td class="rs-t-col rs-t-mono rs-t-num">4.8</td><td class="rs-t-col rs-t-mono rs-t-num">2</td><td class="rs-t-col rs-t-mono rs-t-num">4</td><td class="rs-t-col rs-t-num">1m 11s</td></tr><tr><td class="rs-t-col">prompt-boundary</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--fail">FAIL</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--low">LOW</span></td><td class="rs-t-col rs-t-mono rs-t-num">3.2</td><td class="rs-t-col rs-t-mono rs-t-num">1</td><td class="rs-t-col rs-t-mono rs-t-num">4</td><td class="rs-t-col rs-t-num">4m 08s</td></tr><tr><td class="rs-t-col">prompt-leakage</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--inconclusive">INCONCLUSIVE</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">18</td><td class="rs-t-col rs-t-num">7m 12s</td></tr><tr><td class="rs-t-col">context-poisoning</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">8</td><td class="rs-t-col rs-t-num">3m 35s</td></tr><tr><td class="rs-t-col">source-attribution</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">3</td><td class="rs-t-col rs-t-num">1m 10s</td></tr><tr><td class="rs-t-col">retrieval-consistency</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">2</td><td class="rs-t-col rs-t-num">1m 47s</td></tr><tr><td class="rs-t-col">dummy-attack</td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--pass">PASS</span></td><td class="rs-t-col"><span class="rs-t-pill rs-t-pill--info">INFO</span></td><td class="rs-t-col rs-t-mono rs-t-num">0.0</td><td class="rs-t-col rs-t-mono rs-t-num">0</td><td class="rs-t-col rs-t-mono rs-t-num">1</td><td class="rs-t-col rs-t-num">23s</td></tr></tbody></table></div>
+    <div class="rs-section">Detail</div>
+    <div class="row2">
+      <div><div class="rs-stack"><div class="rs-grade" style="color:#b26a00">D</div><div class="rs-metric__hint">coverage 100%</div></div></div>
+      <div><div class="rs-card"><div class="rs-card__title">vulnerable-rag · standard</div><div class="rs-kv"><div class="rs-kv__k">Target</div><div class="rs-kv__v">vulnerable-rag</div><div class="rs-kv__k">Profile</div><div class="rs-kv__v">standard</div><div class="rs-kv__k">Result</div><div class="rs-kv__v">FAIL</div><div class="rs-kv__k">Risk</div><div class="rs-kv__v">7.4 / 10</div><div class="rs-kv__k">Duration</div><div class="rs-kv__v">26m 02s</div><div class="rs-kv__k">Plugins executed</div><div class="rs-kv__v">9</div><div class="rs-kv__k">Coverage</div><div class="rs-kv__v">100%</div></div></div></div>
+    </div>
+    <div class="rs-section">Subsystems</div>
+    <div class="grid4"><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">fastapi</span></div><div class="rs-card__body">0 scans in flight</div></div><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">ollama</span></div><div class="rs-card__body">2 models available</div></div><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">sqlite</span></div><div class="rs-card__body">OK</div></div><div class="rs-card rs-card--accented" style="border-left-color:#5f6f7e"><div class="rs-row"><span style="color:#5f6f7e;font-size:1.05rem">◌</span><span class="rs-card__title">chromadb</span></div><div class="rs-card__body">not used by the scanner</div></div><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">analyzer</span></div><div class="rs-card__body">rules and scoring loaded</div></div><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">reporting</span></div><div class="rs-card__body">4 formats</div></div><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">plugin_framework</span></div><div class="rs-card__body">9 active, 0 refused</div></div><div class="rs-card rs-card--accented" style="border-left-color:#0f8a5f"><div class="rs-row"><span style="color:#0f8a5f;font-size:1.05rem">●</span><span class="rs-card__title">sdk</span></div><div class="rs-card__body">plugin API</div></div></div>
+  </main>
+</div>
+<style>
+body{margin:0;background:var(--rs-bg)}
+.wrap{display:grid;grid-template-columns:236px 1fr;min-height:100vh;font-family:var(--rs-font-sans)}
+.rail{background:var(--rs-surface);border-right:1px solid var(--rs-border-strong);padding:14px 12px}
+.brand{font-weight:700;letter-spacing:.14em;font-size:.82rem;color:var(--rs-accent);margin-bottom:8px}
+main{padding:16px 22px;max-width:1500px}
+.nav{display:block;width:100%;text-align:left;background:transparent;color:var(--rs-text);
+  border:1px solid transparent;border-left:2px solid transparent;border-radius:4px;
+  padding:.3rem .55rem;font-size:.79rem;font-weight:500;margin-bottom:2px;cursor:pointer}
+.nav.on{background:var(--rs-accent-soft);border-left:2px solid var(--rs-accent);font-weight:650}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px}
+.row2{display:grid;grid-template-columns:190px 1fr;gap:14px;align-items:start}
+</style>

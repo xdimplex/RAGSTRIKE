@@ -1,0 +1,55 @@
+# Scan profile: standard
+#
+# PURPOSE
+#   The default.  Every installed pack, without the deep payload tiers.
+#
+# WHY PROFILES EXIST
+#   A CI gate and a pre-release audit want different depth.  Profiles are precedence level 3 and
+#   select which packs run, which payload tiers are included, and how many attempts each payload gets.
+#
+# WHY THE PACK LIST CHANGED IN PHASE 16
+#   This file used to name nine packs, of which **six were never built** -- indirect-prompt-injection,
+#   role-override, context-injection, secret-extraction, pii-leakage, and retrieval-integrity.  A
+#   "standard" scan therefore ran three packs while the file implied nine, and said nothing about it.
+#
+#   It also omitted all five evaluation packs and the diagnostic, which are the cheapest useful
+#   coverage available -- 21 cases between them, no adversarial variation.  Leaving them out of the
+#   default was the wrong trade.
+#
+#   The six unbuilt packs remain specified in Annex B.  When one is implemented, add it here.
+#
+# ROUGHLY WHAT THIS COSTS
+#   prompt-injection  12 payloads x 3 = 36 calls
+#   prompt-leakage    13 payloads x 3 = 39 calls
+#   context-poisoning  ~7 questions x 3 = ~21 calls
+#   5 evaluation packs 21 cases   x 3 = 63 calls
+#   dummy-attack                        ~1 call
+#   ~160 model calls.  At 5-40s each on CPU: about 15 minutes to 1.8 hours.
+version: 1
+profile:
+  id: standard
+  name: "Standard scan"
+  description: "Every installed pack, without the deep payload tiers. The default."
+
+  packs:
+    - "dummy-attack"            # diagnostic
+    # -- attack packs ------------------------------------------------------------------
+    - "prompt-injection"        # LLM01
+    - "prompt-leakage"          # LLM07
+    - "context-poisoning"       # LLM04 / LLM08
+    # -- evaluation packs (cheap, non-offensive, measure posture rather than break in) --
+    - "prompt-boundary"
+    - "context-separation"
+    - "instruction-priority"
+    - "source-attribution"
+    - "retrieval-consistency"
+
+  payload_tiers: ["quick", "standard"]
+  attempts: 3
+
+  engine:
+    max_concurrency: 4
+    scan_timeout_s: 21600 # 46 quick+standard payloads x 3 attempts = ~138 generations, ~2.9h at
+                          # the measured 76s each. The old 7200s could not fit that.
+
+  seed: 1337            # deterministic ordering; same seed -> same plan (SC4)

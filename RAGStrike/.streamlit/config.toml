@@ -1,0 +1,49 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike dashboard -- Streamlit server configuration
+#
+# WHY THIS FILE EXISTS
+#   Streamlit's default bind address is 0.0.0.0. Started without this file the dashboard listens on
+#   every interface and prints an "External URL" on the machine's public address -- which is exactly
+#   what happened on first launch during the Linux bring-up.
+#
+#   That contradicts the rest of the project. `configs/ragstrike.yaml` sets
+#   `safety.allow_remote_targets: false` and pins `allowed_hosts` to loopback, and both lab apps bind
+#   127.0.0.1 explicitly. The dashboard is the one surface that drives scans, reads every finding,
+#   and renders every report, so it was the *worst* one to leave publicly bound.
+#
+#   The scanner refusing to attack a non-loopback target means nothing if the console that launches
+#   the attacks is reachable from the network.
+# --------------------------------------------------------------------------------------------------
+
+[server]
+address = "127.0.0.1"     # loopback only -- do not change this to make remote access convenient
+port = 8501
+headless = true           # do not try to open a browser; there may not be one (WSL, container, SSH)
+
+[browser]
+gatherUsageStats = false  # this tool is run against security labs; do not phone home about it
+serverAddress = "127.0.0.1"
+serverPort = 8501
+
+# --------------------------------------------------------------------------------------------------
+# Base theme.
+#
+# WHY THIS EXISTS WHEN THE APP ALREADY INJECTS A STYLESHEET
+#   Streamlit paints its own chrome BEFORE the app's `<style>` block reaches the browser. With no
+#   [theme] section it defaults to light, so a dark session flashed white on every page load and
+#   any widget the stylesheet did not reach stayed light permanently -- the "some part dark, some
+#   part light" effect.
+#
+#   These values mirror the DARK palette in `theme/palette.py` so the first paint is already right.
+#   The runtime toggle still works: it re-injects CSS custom properties that override these, which
+#   is what lets a single click repaint native widgets as well as our own components.
+#
+#   Keep in sync with `palette.py`. If they drift, the only symptom is a brief flash of the wrong
+#   colour at load, which is easy to miss and annoying to trace.
+# --------------------------------------------------------------------------------------------------
+[theme]
+base = "dark"
+primaryColor = "#4c9aff"          # palette.DARK.accent
+backgroundColor = "#0d1117"       # palette.DARK.background
+secondaryBackgroundColor = "#151b23"  # palette.DARK.surface
+textColor = "#e8edf2"             # palette.DARK.text

@@ -1,0 +1,40 @@
+# --------------------------------------------------------------------------------------------------
+# Corpus provenance manifest
+#
+# PURPOSE
+#   Declares every document in the corpus and its provenance.
+#
+# WHY IT IS NOT JUST DOCUMENTATION
+#   This is TEST INFRASTRUCTURE. RAGStrike's retrieval-integrity pack verifies that every chunk a
+#   query returns traces back to a document declared here. A chunk with no manifest entry is an
+#   injected chunk, and that is a finding.
+#
+#   It also underpins the citation-verification pack: a citation to a source absent from this manifest
+#   is a fabricated citation, decidable as an exact set operation rather than a judgment call.
+#
+# BOTH PROFILES INGEST AN IDENTICAL CORPUS. A document present for one and not the other would make
+# the differential comparison meaningless.
+# --------------------------------------------------------------------------------------------------
+version: 1
+
+corpus:
+  benign:
+    # Phase 2 adds the real documents. Every entry declares id, filename, sha256, title, and whether
+    # it is ingested by default.
+    # - id: handbook
+    #   file: benign/company_handbook.pdf
+    #   sha256: "..."
+    #   title: "Employee Handbook (synthetic)"
+    #   ingest_by_default: true
+
+  poisoned:
+    # Pre-staged attack documents for teaching. NOT ingested by default -- they are for deliberate
+    # exercises, and auto-loading them would poison every session before it started.
+    #
+    # Each entry documents the payload it carries, so a learner can read what was hidden and where.
+    # - id: hidden-instruction
+    #   file: poisoned/hidden_instruction.pdf
+    #   sha256: "..."
+    #   payload: "White-on-white text instructing the model to ignore its system prompt"
+    #   demonstrates: V1, V2
+    #   ingest_by_default: false

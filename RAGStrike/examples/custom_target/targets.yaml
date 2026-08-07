@@ -1,0 +1,37 @@
+# A custom target definition.
+#
+# Copy the block below into configs/targets.yaml and edit. NEVER put a credential in this file --
+# it is committed. Reference an environment variable instead.
+version: 1
+
+targets:
+  - name: my-rag-app
+    url: "http://127.0.0.1:8080"
+    adapter: fastapi
+    timeout: 120
+    enabled: true
+
+    # REQUIRED. No scan starts without it, and it is carried into every report -- so a report always
+    # says who authorized the testing that produced it (ADR-017). This is a record, not a checkbox.
+    authorization:
+      authorized_by: "your-name"
+      authorization_ref: "TICKET-1234"
+      scope: >
+        Staging instance of the internal knowledge assistant, owned by our team.
+        Authorized in TICKET-1234. No production data.
+
+    # The fastapi adapter is configuration-driven: these say how to speak your API, so a bespoke
+    # service is a change to this file rather than a new adapter.
+    options:
+      chat_path: "/api/query"          # where a question goes
+      health_path: "/healthz"          # liveness probe
+      prompt_field: "question"         # the JSON key holding the question
+      session_field: "conversation_id" # sent to hold a conversation
+      answer_path: "data.answer"       # dotted path to the answer in the response
+      chunks_path: "data.contexts"     # retrieved chunks, if exposed
+      sources_path: "data.citations"   # citations, if exposed
+      session_path: "data.conversation_id"
+
+      # Omit any path your API does not expose. The adapter reports the capability as absent, packs
+      # that need it are SKIPPED, and the skip is recorded as a coverage gap rather than silently
+      # producing a clean result.

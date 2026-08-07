@@ -1,0 +1,20 @@
+# Analyzer engine settings.
+#
+# Points at the other four files. Kept separate so an operator can swap one rule set or scoring
+# model without touching the rest, and so a site-specific rules file can live outside the
+# distribution and survive upgrades.
+version: 1
+
+analyzer:
+  # Recorded on every finding. A finding is only interpretable against the logic that produced it.
+  version: "1.0.0"
+
+  # Relative paths resolve against this file's directory; absolute paths are used as given.
+  rules: "rules.yaml"
+  scoring: "scoring.yaml"
+  confidence: "confidence.yaml"
+  recommendations: "recommendations.yaml"
+
+  # Refuse observations that fail validation rather than analyzing them anyway. Rejections are
+  # always recorded on the report -- a dropped observation must never be invisible.
+  strict_validation: true

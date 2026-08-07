@@ -1,0 +1,125 @@
+# Ruff -- linting and import sorting.
+#
+# PURPOSE
+#   One fast tool replacing flake8, isort, pyupgrade, pep8-naming, flake8-bugbear, and several more.
+#
+# WHY IT EXISTS SEPARATELY FROM pyproject.toml
+#   Phase 1 keeps the lint ruleset in its own file so the rule list can be reviewed and evolved
+#   without touching packaging metadata, and so the intent behind each selected family is documented
+#   next to the selection.
+#
+# FORMATTING STRATEGY
+#   black formats.  ruff lints and sorts imports.  They do not overlap: ruff's formatter is disabled
+#   and E501 (line length) is left to black.  One tool per job avoids the fight where two formatters
+#   each "fix" the other's output on every commit.
+
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes -- undefined names, unused imports
+    "I",    # isort -- import ordering (replaces standalone isort)
+    "N",    # pep8-naming -- enforces the domain vocabulary convention
+    "UP",   # pyupgrade -- keep syntax modern for the declared target
+    "B",    # bugbear -- likely bugs, notably mutable default arguments
+    "C4",   # comprehensions
+    "SIM",  # simplify
+    "TCH",  # typing-only imports moved into TYPE_CHECKING blocks
+    "TID",  # tidy imports -- this is what bans relative imports
+    "PTH",  # prefer pathlib over os.path (NFR-02: Windows and POSIX both supported)
+    "RET",  # return statement consistency
+    "ARG",  # unused arguments
+    "PL",   # pylint subset
+    "RUF",  # ruff-specific
+    "S",    # bandit subset -- security lint in the inner loop, not only in CI
+    "ASYNC",# async correctness -- blocking calls inside async def
+    "DTZ",  # naive datetime usage; all timestamps are UTC and tz-aware
+    "T20",  # no print() -- CLI output goes through cli/output/ so JSON mode stays clean
+]
+ignore = [
+    "E501",     # line length is black's job
+    "PLR0913",  # argument count -- constructors at the composition root legitimately take many
+    "S101",     # assert -- allowed, and required, in tests
+
+    # TC001/TC002/TC003 move imports used only in annotations into `if TYPE_CHECKING:` blocks.
+    # DISABLED DELIBERATELY, and from experience rather than preference.
+    #
+    # Several libraries in this stack resolve annotations at RUNTIME: Pydantic validates against
+    # them, and FastAPI introspects handler signatures at import time. When an annotation names a
+    # type that only exists under TYPE_CHECKING, FastAPI cannot resolve it and silently reinterprets
+    # the parameter as a query field -- turning every request into a 422 with no error pointing
+    # anywhere near the cause. That exact failure cost real debugging time in the companion
+    # repository after this rule's autofix ran.
+    #
+    # The saving is a handful of import cycles that this codebase does not have, because the
+    # dependency rule already forbids them. The cost is a class of bug that is invisible until
+    # runtime. Not worth it.
+    "TC001",
+    "TC002",
+    "TC003",
+]
+
+[lint.per-file-ignores]
+# Function-level imports (PLC0415) are a legitimate isolation technique in tests: importing inside
+# a test keeps module state from leaking between them, which matters here because plugin discovery
+# imports third-party code.
+"tests/**" = ["S", "PLR2004", "ARG", "PLC0415"]
+# Reference plugins are documentation as much as code, and they import the SDK the way a
+# third-party author would rather than the way the engine does internally.
+"plugins/**" = ["PLC0415"]
+# Operator-facing CLI reporters. `print` (T20) is not a stray debug statement here -- it IS the
+# output of the tool, the way `ragstrike profiles` prints a table. PTH201 objects to `Path(".")`,
+# which is the correct spelling for "the directory the operator passed or the current one".
+"scripts/**" = ["T20", "PTH201", "PLC0415", "PLR0911"]
+# PLR0911: the reporters interpret results through a chain of guards, one return per distinct
+# claim about the evidence. Merging them to satisfy a count would blur readings that are
+# deliberately separate -- "both failed" and "sample too small to read" are not the same
+# statement, and a reader acting on the wrong one draws the wrong conclusion.
+# Streamlit's own idioms (T20), plus function-level imports (PLC0415).
+#
+# PLC0415 IS DISABLED HERE DELIBERATELY, AND THE REASON IS ARCHITECTURAL RATHER THAN STYLISTIC.
+# `import streamlit` at module scope would make every component, service, and page unimportable
+# without the [dashboard] extra installed -- which is most CI jobs, and every environment that
+# installed RAGStrike to use the CLI. Deferring the import keeps the entire package importable and
+# therefore unit-testable with no Streamlit present; the UI half is exercised through AppTest, which
+# does have it. Same precedent as `plugins/**` and `tests/**` above.
+"src/ragstrike/dashboard/**" = ["T20", "PLC0415"]
+"src/ragstrike/sdk/scaffold/templates/**" = ["ALL"]  # these are templates, not source
+
+# The validation harness is a development tool, not shipped source, and two of its idioms are
+# deliberate rather than sloppy.
+#
+# PLC0415 -- every consistency check imports the subsystem it checks INSIDE the function. That is the
+# mechanism, not an oversight: a subsystem whose import fails must be reported as a failed check, not
+# take the whole harness down at module load. Hoisting these imports would mean a broken analyzer
+# stops the runner before it can tell you the analyzer is broken.
+#
+# T201 -- the runner prints its progress. It is a script an operator watches, and routing that
+# through the CLI's rich console would couple the harness to the surface it is meant to validate.
+"validation/**" = ["PLC0415", "T201"]
+
+# Examples are runnable documentation. A reader copies one and runs it, so it prints its progress
+# (T201) rather than routing output through a logger the reader has not configured. E402 stays
+# ENABLED here and is waived line by line with `# noqa`, because a sys.path adjustment before an
+# import is worth seeing at the line where it happens.
+"examples/**" = ["T201", "PLC0415", "INP001"]
+
+[lint.isort]
+known-first-party = ["ragstrike"]
+force-sort-within-sections = true
+
+[lint.flake8-tidy-imports]
+# Absolute imports only.  This is not style: `ragstrike.logging` shadows the stdlib `logging` within
+# this distribution, and absolute imports are what keep that unambiguous.
+ban-relative-imports = "all"
+
+[lint.pylint]
+max-branches = 12
+max-statements = 50          # SDD 36: soft cap of 50 lines per function
+
+[lint.mccabe]
+max-complexity = 10          # SDD 36: cyclomatic complexity ceiling

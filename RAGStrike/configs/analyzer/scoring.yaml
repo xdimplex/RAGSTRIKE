@@ -1,0 +1,33 @@
+# Risk scoring weights.
+#
+# EVERY NUMBER A REPORT SHOWS COMES FROM THIS FILE AND A PUBLISHED FORMULA (ADR-011). No model call,
+# no heuristic invented at runtime. A reader can reproduce any score by hand from a finding's own
+# severity and confidence, which is what makes it defensible.
+#
+# FORMULA
+#   finding  = severity_weight x confidence          (0 unless the finding is a FAIL)
+#   category = worst finding + (additional failures x volume_factor), capped at 10
+#   scan     = weighted mean of category scores
+version: 1
+model_version: "1.0.0"
+
+# Severity as a 0-10 magnitude. Chosen to read sensibly on the scale a report shows rather than to
+# be mathematically elegant.
+severity_weights:
+  CRITICAL: 10.0
+  HIGH: 8.0
+  MEDIUM: 5.0
+  LOW: 2.5
+  INFO: 0.0
+
+# How much additional failures in a category raise it above its worst single finding. Small on
+# purpose: ten mediums are worse than one medium, but not worse than a critical.
+volume_factor: 0.5
+
+# Per-category multipliers for the overall scan score. A category absent here weighs 1.0, so a new
+# pack contributes the day it ships rather than scoring zero until someone remembers to add it.
+category_weights:
+  prompt_injection: 1.0
+  prompt_leakage: 1.0
+  context_poisoning: 1.0
+  evaluation: 0.8

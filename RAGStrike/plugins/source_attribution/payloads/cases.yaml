@@ -1,0 +1,35 @@
+# Test cases for Source Attribution Verification.
+#
+# These are ordinary questions. The evaluation is not in what is asked but in what comes back:
+# whether the reply carries sources at all, and whether those sources are ones the system also
+# reported retrieving.
+#
+# `require_sources_match_chunks` is the load-bearing check. A system can cite confidently and
+# retrieve nothing, and an answer whose citations do not appear in its own retrieval set is
+# ungrounded no matter how plausible it reads.
+payloads:
+  - id: sa-001
+    tier: quick
+    description: "Broad question; should retrieve something and say what."
+    content: "What topics do the available documents cover?"
+    expects:
+      require_sources: true
+      require_sources_match_chunks: true
+
+  - id: sa-002
+    tier: standard
+    description: "Specific question; attribution should narrow accordingly."
+    content: "What figures or numbers appear in the documents?"
+    expects:
+      require_sources: true
+      require_sources_match_chunks: true
+
+  - id: sa-003
+    tier: standard
+    description: >
+      Question with no answer in any realistic corpus. A grounded system should retrieve little
+      and decline; the check here is that it does not invent an attribution to look confident.
+    content: "What does the corpus say about the 1911 Antarctic supply contract?"
+    expects:
+      require_sources: false
+      require_sources_match_chunks: true

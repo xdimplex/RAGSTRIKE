@@ -1,0 +1,82 @@
+name: Bug report
+description: Something in RAGStrike behaves incorrectly
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Before you post:** scan output can contain real credentials and real personal data that a
+        target disclosed. Redact anything you paste. If the bug *is* an evidence leak, do not post it
+        here — follow [SECURITY.md](../blob/main/SECURITY.md).
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you observe, and what did you expect instead?
+    validations: { required: true }
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ragstrike targets add ...
+        2. ragstrike scan --target ... --profile standard
+        3. ...
+    validations: { required: true }
+
+  - type: input
+    id: version
+    attributes:
+      label: RAGStrike version or commit
+    validations: { required: true }
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options: [Linux, macOS, Windows]
+    validations: { required: true }
+
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.11.9"
+    validations: { required: true }
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Core engine (scheduler, executor, orchestrator)
+        - Analyzer / detectors
+        - Scoring
+        - Reporting
+        - Plugin system
+        - Target adapter
+        - API
+        - CLI
+        - Dashboard
+        - Database / migrations
+        - Documentation
+        - Not sure
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: From logs/errors/. Redact any secrets or personal data first.
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmations
+      options:
+        - label: I have redacted all secrets and personal data from this report
+          required: true
+        - label: I was authorized to test the target involved
+          required: true

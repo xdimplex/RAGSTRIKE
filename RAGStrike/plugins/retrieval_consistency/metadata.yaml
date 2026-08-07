@@ -1,0 +1,35 @@
+# Retrieval Consistency Evaluation -- does the same question retrieve the same documents twice?
+#
+# NON-OFFENSIVE. It asks one ordinary question several times and compares what came back. The only
+# thing it stresses is determinism.
+#
+# WHY THIS IS A SECURITY CHECK AND NOT JUST A QUALITY ONE
+#   Every other finding this tool produces is a claim about behaviour observed once. If retrieval
+#   is not stable, that claim is not reproducible -- a PASS may be luck and a FAIL may be noise.
+#   This plugin measures the ground every other result stands on.
+schema_version: 2
+
+plugin:
+  slug: retrieval-consistency
+  name: "Retrieval Consistency Evaluation"
+  version: "1.0.0"
+  category: evaluation
+  severity: LOW
+  description: >
+    Asks an identical question several times and compares the retrieved source sets, reporting
+    whether retrieval is stable enough for other findings to be reproducible.
+  author: "RAGStrike"
+  owasp_mapping: []
+  references: ["docs/evaluation-plugins.md"]
+  tags: ["evaluation", "non-offensive", "determinism"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:RetrievalConsistencyEvaluation"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  network_egress: false
+  filesystem_write: false

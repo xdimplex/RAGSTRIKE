@@ -1,0 +1,26 @@
+# Report templates.
+#
+# Templates are FORMATTED, NEVER EVALUATED. Substitution understands `$name` and nothing else -- no
+# expressions, no attribute traversal, no arbitrary code. A template is a file an operator edits,
+# and a templating language that can execute would turn styling a report into a code-execution
+# surface for a security tool. That is why this does not use Jinja despite it already being a
+# dependency.
+version: 1
+
+templates:
+  # Directory holding report.html, report.css, and footer.txt. Every one is optional; the shipped
+  # defaults are complete, so a report renders with no customization at all.
+  #
+  # Empty means "use the built-in templates".
+  directory: ""
+
+  # Placeholders available in report.html:
+  #   $title   the report title
+  #   $css     the stylesheet, inlined
+  #   $body    the rendered sections
+  #   $footer  the branding footer
+  #
+  # Assets are inlined rather than linked. A report is emailed, attached to a ticket, and opened
+  # from a downloads folder six months later; one that depends on a sibling CSS file is broken in
+  # all three situations.
+  inline_assets: true

@@ -1,0 +1,154 @@
+# Import Linter -- the dependency rule as a machine-checked contract.
+#
+# PURPOSE
+#   Enforce SDD 7.2 in CI.  Layering that is documented but unenforced degrades within months as
+#   deadlines bite, so the rule is a merge gate rather than a review convention.
+#
+# WHY IT EXISTS IN PHASE 1
+#   It is configured before there is any code to violate it.  Retrofitting layering onto an existing
+#   codebase is a project; maintaining it from commit one is free.
+#
+# RUN
+#   lint-imports
+
+[importlinter]
+root_package = ragstrike
+include_external_packages = True
+
+# ---------------------------------------------------------------------------------------------
+# Contract 1 -- the layer stack.  Higher layers may import lower ones; never the reverse.
+#
+# REVISED IN PHASE 3.  The Phase 1 version listed core, scheduler, analyzers, recommendations,
+# reporters, and plugins as siblings on one line.  import-linter treats same-layer siblings as
+# *independent* -- they may not import each other at all -- which forbade the orchestrator from
+# calling the scheduler and the scheduler from loading plugins.  That is the engine's actual call
+# chain, so the contract as written made the SDD's own design unimplementable.
+#
+# Two corrections:
+#
+#   1. Layer 2 is spelled out as the ordering it always had: orchestrator -> executor -> result
+#      processing -> scheduler -> plugins.  Nothing moved; the real dependency direction is now
+#      written down instead of being flattened into one line.
+#
+#   2. `core.contracts` sits at Layer 1 beside `models`, which is where SDD 7.2 puts the ports
+#      ("Layer 1 -- Domain: Entities, Value Objects, Enums; Ports: TargetAdapter, AttackPlugin,
+#      Detector, Repository, Renderer").  Phase 1 placed the whole of `core` at Layer 2, which put
+#      the ports above the plugins and adapters that must implement them.
+#
+# The rule itself is unchanged: dependencies point inward, and infrastructure is never imported by
+# the application layer.
+#
+# EXTENDED IN PHASE 5.  `ragstrike.sdk` is inserted as its own row directly above
+# `ragstrike.plugins`.  This encodes, as an enforced contract rather than a comment, the rule
+# Annex A already stated for this package: "sdk depends on the core, never the reverse" --
+# concretely, `ragstrike.sdk` may import `ragstrike.plugins.base` (to re-export Payload and
+# Recommendation, and to build a PluginContext-derived ScanContext) and everything below it, but
+# no engine layer -- plugins, the scheduler, the orchestrator, the CLI -- may import the SDK.
+# The SDK is a leaf convenience library for third-party plugin authors, not a runtime dependency
+# of the engine.
+#
+# EXTENDED IN PHASE 7.  `ragstrike.attacks` -- the first-party packs -- is inserted directly above
+# `ragstrike.sdk`.  Until Phase 7 that package held nothing but scaffolding READMEs, so it was
+# absent from this stack and therefore *unconstrained*: nothing stopped the engine importing a
+# pack, which is the one thing the plugin architecture exists to prevent.  Its position says a
+# pack may import the SDK, the plugin base, and everything below -- and that no engine layer may
+# import a pack.  Delete any pack directory and the engine still starts, still scans, and still
+# reports; this contract is what keeps that true as Phases 8-10 add eleven more.
+#
+# REVISED IN PHASE 11.  `ragstrike.reporters` is lifted out of the Layer 5 sibling group onto its
+# own row directly above it.  The Phase 1 version listed reporters and analyzers as siblings, and
+# import-linter treats same-row modules as *independent* -- they may not import each other at all.
+# That was harmless while both were empty scaffolds, but the reporting engine's entire input is the
+# `Finding` objects the analyzer produces, so the contract as written forbade the one dependency
+# SDD 19 requires.
+#
+# The dependency is real and one-directional: reporting reads findings, and the analyzer must never
+# know a report exists. Its new position says exactly that, and the reverse import is now a
+# contract violation rather than a convention. Nothing moved that had behaviour; this encodes a
+# direction that was always intended.
+# ---------------------------------------------------------------------------------------------
+[importlinter:contract:layers]
+name = Clean Architecture layers
+type = layers
+layers =
+    ragstrike.cli | ragstrike.api | ragstrike.dashboard
+    ragstrike.target_adapters | ragstrike.database | ragstrike.logging
+    ragstrike.core.orchestrator
+    ragstrike.core.executor
+    ragstrike.reporters
+    ragstrike.recommendations | ragstrike.analyzers | ragstrike.core.scoring
+    ragstrike.scheduler
+    ragstrike.attacks
+    ragstrike.sdk
+    ragstrike.plugins
+    ragstrike.core.evidence | ragstrike.core.events
+    ragstrike.core.config
+    ragstrike.core.contracts
+    ragstrike.core.errors
+    ragstrike.models
+    ragstrike.utils
+
+# ---------------------------------------------------------------------------------------------
+# Contract 2 -- the domain is sealed.  models/ knows nothing about the rest of the system.
+# ---------------------------------------------------------------------------------------------
+[importlinter:contract:domain-purity]
+name = Domain model imports nothing from ragstrike
+type = forbidden
+source_modules = ragstrike.models
+forbidden_modules =
+    ragstrike.core
+    ragstrike.database
+    ragstrike.api
+    ragstrike.cli
+    ragstrike.dashboard
+    ragstrike.target_adapters
+    ragstrike.reporters
+    ragstrike.plugins
+
+# ---------------------------------------------------------------------------------------------
+# Contract 3 -- ADR-010.  The dashboard is an HTTP client, not an importer.
+# ---------------------------------------------------------------------------------------------
+[importlinter:contract:dashboard-isolation]
+name = Dashboard never imports the engine
+type = forbidden
+source_modules = ragstrike.dashboard
+forbidden_modules =
+    ragstrike.core
+    ragstrike.models
+    ragstrike.database
+    ragstrike.scheduler
+    ragstrike.analyzers
+    ragstrike.plugins
+    ragstrike.target_adapters
+
+# ---------------------------------------------------------------------------------------------
+# Contract 4 -- ADR-011.  "Scores are never produced by a model" as an executable statement.
+# This is the single most important contract in the file.
+# ---------------------------------------------------------------------------------------------
+[importlinter:contract:scoring-determinism]
+name = Scoring cannot reach a model or any I/O
+type = forbidden
+source_modules = ragstrike.core.scoring
+forbidden_modules =
+    ragstrike.analyzers.detectors.llm_judge
+    ragstrike.target_adapters
+    ragstrike.database
+    httpx
+
+# ---------------------------------------------------------------------------------------------
+# Contract 5 -- utils stays generic, or it becomes the real centre of the system.
+# ---------------------------------------------------------------------------------------------
+[importlinter:contract:utils-purity]
+name = Utils depends on nothing
+type = forbidden
+source_modules = ragstrike.utils
+forbidden_modules = ragstrike.models, ragstrike.core
+
+# ---------------------------------------------------------------------------------------------
+# Contract 6 -- the scheduler is pure, which is what makes it exhaustively testable without a target.
+# ---------------------------------------------------------------------------------------------
+[importlinter:contract:scheduler-purity]
+name = Scheduler performs no I/O
+type = forbidden
+source_modules = ragstrike.scheduler
+forbidden_modules = ragstrike.database, ragstrike.target_adapters, httpx, aiosqlite

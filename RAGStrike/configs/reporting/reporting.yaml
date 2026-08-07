@@ -1,0 +1,31 @@
+# Reporting engine settings.
+#
+# Points at the other two files. Kept separate so branding can be changed without touching output
+# settings, and so a site-specific template directory can live outside the distribution and survive
+# upgrades.
+version: 1
+
+reporting:
+  # Recorded on every report. A stored report is only interpretable against the shape that
+  # produced it.
+  report_version: "1.0.0"
+
+  # Formats generated when a caller does not name one. Declared placeholders (pdf) are skipped
+  # automatically -- asking for "everything" should not fail because PDF is not implemented yet.
+  default_formats: ["html", "json", "markdown"]
+
+  # Where exports are written. Relative resolves against the repository root.
+  output_dir: "reports"
+
+  # Refuse to build a report from findings that fail validation. Left true: a report built from
+  # incoherent input looks exactly as authoritative as a correct one, which is what makes
+  # accepting it dangerous.
+  strict_validation: true
+
+  # Findings beyond this are summarized rather than detailed in HTML and Markdown. The JSON export
+  # always contains all of them, and the count omitted is always stated.
+  max_detailed_findings: 50
+
+  # Relative paths resolve against this file's directory.
+  templates: "templates.yaml"
+  branding: "branding.yaml"

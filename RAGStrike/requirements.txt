@@ -1,0 +1,64 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike -- RUNTIME dependencies
+#
+# PURPOSE
+#   What the framework needs to run.  Developer tooling lives in requirements-dev.txt, so a
+#   production or CI install pulls neither pytest nor mypy.
+#
+# POLICY
+#   Every dependency below is justified.  A new one requires justification in the pull request body
+#   (see CONTRIBUTING.md).  Heavy or optional integrations -- Streamlit, LangChain, LlamaIndex,
+#   ReportLab -- are extras in pyproject.toml, never base dependencies, so `pip install ragstrike`
+#   stays small.
+#
+#   Lower bounds only.  Applications pin; libraries constrain.  RAGStrike is installed alongside
+#   other packages, and hard pins here would make it uninstallable next to half of them.
+#
+# INSTALL
+#   pip install -r requirements.txt
+# --------------------------------------------------------------------------------------------------
+
+# ---- API layer ------------------------------------------------------------------------------------
+fastapi>=0.110              # REST surface.  Chosen for Pydantic-native validation and generated OpenAPI.
+uvicorn[standard]>=0.29     # ASGI server.  [standard] adds uvloop and httptools for real throughput.
+sse-starlette>=2.1          # Server-sent events for scan progress (ADR-014: SSE, not WebSockets --
+                            # the flow is strictly one-directional, so bidirectional plumbing is waste).
+
+# ---- Validation and configuration -----------------------------------------------------------------
+pydantic>=2.6               # Boundary validation ONLY -- API models and configuration.  Domain
+                            # entities are frozen dataclasses (SDD 36); Pydantic must not reach them.
+pydantic-settings>=2.2      # Environment-variable binding for the RAGSTRIKE_* precedence layer.
+pyyaml>=6.0                 # Every configuration file, pack manifest, and payload set is YAML.
+
+# ---- Persistence ----------------------------------------------------------------------------------
+aiosqlite>=0.20             # Async SQLite.  No ORM by decision (ADR-007): the schema is small and
+                            # stable, and queries in a security tool must stay reviewable.
+
+# ---- Target communication -------------------------------------------------------------------------
+httpx>=0.27                 # Async HTTP client for the target adapters.  Chosen over aiohttp for its
+                            # requests-compatible API and first-class test transport (respx).
+jsonpath-ng>=1.6            # Configurable request/response mapping in the HTTP adapter.  This is what
+                            # makes supporting a new bespoke API a config change, not a code change.
+
+# ---- Reporting ------------------------------------------------------------------------------------
+jinja2>=3.1                 # HTML report templating.  Note: report templates only.  Attack payloads
+                            # use a NON-EVALUATING renderer (ADR-016) -- a sandbox escape in a
+                            # templating engine must not be reachable from untrusted payload data.
+
+# ---- CLI ------------------------------------------------------------------------------------------
+typer>=0.12                 # CLI framework.  Type hints become the argument parser, so the CLI cannot
+                            # drift from its own signatures.
+rich>=13.7                  # Human-readable terminal output: progress, tables, highlighted evidence.
+
+# ---- Observability --------------------------------------------------------------------------------
+loguru>=0.7                 # Structured logging.  Application modules use the stdlib `logging` API
+                            # and an InterceptHandler routes records here -- which keeps the backend
+                            # replaceable AND keeps ragstrike.logging (Layer 3) out of the import
+                            # graph of the engine (Layer 2), where it would break the dependency
+                            # rule.  Redaction will be a sink-level processor (ADR-013), never a
+                            # per-call-site responsibility: one forgotten call site would leak a
+                            # secret a target disclosed.
+
+# ---- Plugin system --------------------------------------------------------------------------------
+packaging>=24.0             # SemVer range resolution for plugin API compatibility (ADR-015).
+                            # Plugin discovery itself uses stdlib importlib.metadata -- no dependency.

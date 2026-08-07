@@ -1,0 +1,49 @@
+# Scan profile: deep
+#
+# PURPOSE
+#   Everything installed, every payload tier, five attempts each.  Hours, not minutes.
+#
+# WHY PROFILES EXIST
+#   A CI gate and a pre-release audit want different depth.  Profiles are precedence level 3 and
+#   select which packs run, which payload tiers are included, and how many attempts each payload gets.
+#
+# ON `packs: ["*"]`
+#   The wildcard means "every installed pack".  Read literally it would be one pack whose slug is
+#   `*`, matching nothing -- a deep scan running zero plugins and reporting no findings, which is
+#   indistinguishable from a clean result.  `ScanProfile` expands it; there is a test for that.
+#
+# ON `attempts`
+#   LLM behaviour is stochastic.  Exploitability is scored as successes/attempts, so a higher attempt
+#   count buys a more reliable measurement at the cost of time -- it is not redundancy.
+#
+# ROUGHLY WHAT THIS COSTS
+#   prompt-injection  18 payloads x 5 =  90 calls
+#   prompt-leakage    20 payloads x 5 = 100 calls
+#   context-poisoning ~7 questions x 5 = ~35 calls
+#   5 evaluation packs 21 cases   x 5 = 105 calls
+#   ~335 model calls.  At 5-40s each on CPU: about 30 minutes to 3.5 hours.
+#
+#   The old description here claimed "~1200 cases, under 60 minutes" and set scan_timeout_s to 3600.
+#   Neither was measured, and the timeout would have aborted the scan partway through on any CPU-only
+#   machine -- producing a partial result that still renders as a completed one.  Raised to 6 hours.
+version: 1
+profile:
+  id: deep
+  name: "Deep scan"
+  description: "Every installed pack, every payload tier, five attempts each. Hours, not minutes."
+
+  packs:
+    - "*"
+
+  payload_tiers: ["quick", "standard", "deep"]
+  attempts: 5
+
+  engine:
+    max_concurrency: 4
+    scan_timeout_s: 43200 # 59 payloads x 5 attempts = ~295 generations, ~6.2h at the measured 76s
+                          # each. 12h of headroom so a deep run cannot be silently truncated.
+
+  seed: 1337            # deterministic ordering; same seed -> same plan (SC4)
+  # cost-amplification is deep-only AND requires an explicit acknowledgement, because it
+  # measures a resource limit by approaching it.  The intent is to measure, never exhaust.
+  acknowledge_cost_amplification: false

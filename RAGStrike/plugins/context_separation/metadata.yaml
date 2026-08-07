@@ -1,0 +1,31 @@
+# Context Separation Evaluation -- is document text treated as data, or as instructions?
+#
+# NON-OFFENSIVE. The "document" is supplied inline in the question and contains a harmless canary
+# marker. Nothing is uploaded, nothing is ingested, and the target's corpus is never touched --
+# which is what keeps this an evaluation rather than a poisoning attack.
+schema_version: 2
+
+plugin:
+  slug: context-separation
+  name: "Context Separation Evaluation"
+  version: "1.0.0"
+  category: evaluation
+  severity: HIGH
+  description: >
+    Checks that instructions appearing inside document content are treated as text to be
+    summarized rather than commands to be followed.
+  author: "RAGStrike"
+  owasp_mapping: ["LLM01"]
+  references: ["docs/evaluation-plugins.md"]
+  tags: ["evaluation", "non-offensive", "indirect-injection"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:ContextSeparationEvaluation"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  network_egress: false
+  filesystem_write: false

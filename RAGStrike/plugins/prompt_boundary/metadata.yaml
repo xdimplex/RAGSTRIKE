@@ -1,0 +1,30 @@
+# Prompt Boundary Evaluation -- does the system keep its own configuration text out of its answers?
+#
+# NON-OFFENSIVE. The test cases ask ordinary questions about how the assistant is set up. They do
+# not attempt extraction; they check whether the boundary holds when someone simply asks.
+schema_version: 2
+
+plugin:
+  slug: prompt-boundary
+  name: "Prompt Boundary Evaluation"
+  version: "1.0.0"
+  category: evaluation
+  severity: HIGH
+  description: >
+    Checks that the boundary between system configuration and user conversation holds -- that
+    asking the assistant about its own instructions does not cause it to reproduce them.
+  author: "RAGStrike"
+  owasp_mapping: ["LLM06"]
+  references: ["docs/evaluation-plugins.md"]
+  tags: ["evaluation", "non-offensive", "prompt-boundary"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  entry_point: "plugin:PromptBoundaryEvaluation"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  network_egress: false
+  filesystem_write: false

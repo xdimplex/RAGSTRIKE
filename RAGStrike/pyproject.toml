@@ -1,0 +1,214 @@
+# RAGStrike — project metadata and tool configuration.
+#
+# PURPOSE
+#   Single declarative source for packaging (PEP 621), dependencies, and the configuration of every
+#   quality tool except ruff (which owns ruff.toml) and pre-commit (which owns its own file).
+#
+# WHY IT EXISTS
+#   One file the build backend, the type checker, the test runner, and the coverage tool all read.
+#   Configuration scattered across setup.py, setup.cfg, mypy.ini, and pytest.ini drifts.
+#
+# FUTURE RESPONSIBILITIES
+#   Declare the `ragstrike.attack_packs` entry points for the twelve first-party packs (Phase 7-10),
+#   the console scripts, and the optional extras that keep heavy adapters out of the base install.
+
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ragstrike"
+version = "1.0.0"
+description = "An extensible offensive security evaluation framework for Retrieval-Augmented Generation systems"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+keywords = ["security", "rag", "llm", "prompt-injection", "red-team", "scanner", "owasp"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Typing :: Typed",
+]
+
+# Runtime dependencies are mirrored in requirements.txt, which documents why each one is here.
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "aiosqlite>=0.20",
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "jsonpath-ng>=1.6",
+    "jinja2>=3.1",
+    "typer>=0.12",
+    "rich>=13.7",
+    "loguru>=0.7",
+    "packaging>=24.0",
+    "sse-starlette>=2.1",
+]
+
+[project.optional-dependencies]
+# The starlette upper bound is load bearing, not tidiness. starlette 1.4.0 made
+# `thread_minimum_size` a REQUIRED keyword-only argument of GZipResponder, and streamlit 1.61.0 --
+# the newest release -- still constructs its `_MediaAwareGZipResponder` subclass without it. Every
+# gzipped response then dies with `TypeError: GZipResponder.__init__() missing 1 required
+# keyword-only argument`, and the dashboard returns HTTP 500 to a browser. It reads as healthy from
+# curl, which sends no Accept-Encoding by default -- so verify this one in an actual browser.
+dashboard = ["streamlit>=1.33", "pandas>=2.2", "altair>=5.3", "starlette<1.4"]
+# ReportLab, not WeasyPrint. WeasyPrint was declared here from Phase 1 and never rendered a
+# single file: it binds to GTK/Pango/Cairo, native libraries absent from a stock Windows
+# machine and unobtainable through pip. ReportLab is pure Python and installs everywhere.
+pdf = ["reportlab>=4.1"]
+langchain = ["langchain-core>=0.2"]
+llamaindex = ["llama-index-core>=0.10"]
+dev = [
+    "pytest>=8.1", "pytest-asyncio>=0.23", "pytest-cov>=5.0", "pytest-timeout>=2.3",
+    "hypothesis>=6.100", "respx>=0.21",
+    "pypdf>=4.2",           # reads back the PDFs the renderer writes; a byte check alone is not proof
+    "black>=24.3", "ruff>=0.3", "mypy>=1.9", "import-linter>=2.0",
+    "bandit>=1.7", "pip-audit>=2.7", "pre-commit>=3.7",
+    "types-pyyaml>=6.0", "mkdocs-material>=9.5",
+]
+all = ["ragstrike[dashboard,pdf,dev]"]
+
+[project.scripts]
+ragstrike = "ragstrike.cli.main:app"
+# A SEPARATE entry point rather than a `ragstrike serve` subcommand, and the reason is the layer
+# contract rather than taste. `cli`, `api`, and `dashboard` sit on the SAME row of the Clean
+# Architecture layers -- three independent front doors, none of which may import another. A `serve`
+# subcommand was written, and `lint-imports` correctly refused it: the CLI would have gained a hard
+# dependency on the HTTP surface, so an install without FastAPI could no longer run a scan.
+ragstrike-api = "ragstrike.api.app:run"
+
+# Phase 4 wires the plugin registry; Phases 7-10 add one entry per first-party pack here.
+# First-party packs deliberately use the SAME public entry-point group third parties use, so the
+# extension path cannot silently rot -- if it breaks, the shipped product breaks first.
+[project.entry-points."ragstrike.attack_packs"]
+# prompt-injection = "ragstrike.attacks.prompt_injection:PACK"
+
+[project.urls]
+Homepage = "https://github.com/OWNER/ragstrike"
+Documentation = "https://github.com/OWNER/ragstrike/tree/main/docs"
+Issues = "https://github.com/OWNER/ragstrike/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ragstrike = ["py.typed", "attacks/**/*.yaml", "reporters/templates/**/*", "sdk/**/*.json"]
+
+# --------------------------------------------------------------------------------------------------
+# black -- formatting. Line length 100: wide enough for a typed signature with a return annotation,
+# narrow enough for a side-by-side diff on a laptop.
+# --------------------------------------------------------------------------------------------------
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+# --------------------------------------------------------------------------------------------------
+# mypy -- strict everywhere. A security tool that silently coerces None is not one you want to trust.
+# --------------------------------------------------------------------------------------------------
+[tool.mypy]
+# The ANALYSIS target, not the supported floor -- `requires-python` above still says >=3.11.
+#
+# This was "3.11" and had to move. numpy installed for a 3.13 interpreter writes its stubs with the
+# 3.12+ `type X = ...` statement; at a 3.11 target mypy cannot parse numpy/__init__.pyi, aborts with
+# "Type statement is only supported in Python 3.12 and greater", and checks NOTHING ELSE. One
+# unparseable third-party stub silently disabled the whole type gate. numpy is never imported here
+# -- it arrives behind pandas and streamlit -- so the breakage is entirely incidental, and neither
+# `ignore_missing_imports` nor `follow_imports = "skip"` suppresses it (the stub is present, and
+# mypy always parses stub files).
+#
+# WHAT THIS TRADES: mypy no longer flags a 3.12+ construct that would fail on 3.11. That guarantee
+# is not lost, only moved -- ruff (`ruff.toml`) and black both still target py311 and reject
+# newer syntax. Verifying the floor properly means running the suite on a real 3.11 interpreter,
+# which is a CI matrix job rather than something a type checker can honestly assert from 3.13.
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+warn_no_return = true
+disallow_any_explicit = false          # bare Any allowed only with an inline justification comment
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+no_implicit_optional = true
+show_error_codes = true
+pretty = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+# pandas and altair join this list in Phase 12: the dashboard's chart and table widgets are the only
+# consumers, both ship stubs separately (pandas-stubs) that pin a pandas minor version, and pinning
+# a stub package to keep four widget functions typed is a maintenance cost with no safety return.
+# reportlab joins in Phase 16 for the same reason: it ships no stubs, and the renderer
+# confines every call to one module behind an availability flag.
+module = [
+    "streamlit.*",
+    "chromadb.*",
+    "jsonpath_ng.*",
+    "pandas.*",
+    "altair.*",
+    "reportlab.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# numpy is never imported by this project -- it arrives transitively behind pandas and streamlit.
+# It is listed only so a missing stub is not reported as a project error.
+module = ["numpy.*"]
+ignore_missing_imports = true
+
+# --------------------------------------------------------------------------------------------------
+# pytest
+# --------------------------------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+# The validation harness is tested alongside the framework: it is the thing that says whether the
+# framework works, so a bug in it produces a confident wrong answer rather than a red build.
+testpaths = ["tests", "validation/tests"]
+asyncio_mode = "auto"
+timeout = 300
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "unit: pure functions, no I/O",
+    "integration: real SQLite and real plugin loading, no network",
+    "contract: adapter and pack conformance suites",
+    "golden: replay over the recorded evidence corpus",
+    "system: requires the Docker lab and a live model",
+    "property: Hypothesis property-based tests",
+    "slow: excluded from the default developer run",
+]
+
+# --------------------------------------------------------------------------------------------------
+# coverage -- 85% in core is a merge gate; the scoring and scheduler packages are held higher in CI
+# because a bug there is invisible in output (a whole pack unscheduled looks like "no findings").
+# --------------------------------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["src/ragstrike"]
+branch = true
+omit = ["*/dashboard/*", "*/__main__.py"]
+
+[tool.coverage.report]
+precision = 1
+show_missing = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "@overload"]
+
+# --------------------------------------------------------------------------------------------------
+# bandit -- security linting over src/.
+#
+# B105 (hardcoded_password_string) is skipped project-wide, and the reason is structural rather than
+# convenient: PASS and FAIL are this framework's *outcome vocabulary*. They appear as enum members,
+# as dictionary keys in colour and glyph lookups, and in report tables. Bandit sees the literal
+# "PASS" next to an assignment and infers a credential every time.
+#
+# Nothing else is skipped. B104, B311, and B101 are annotated inline at their single call sites, so
+# each justification sits next to the code it excuses rather than in a config file nobody reads.
+# --------------------------------------------------------------------------------------------------
+[tool.bandit]
+exclude_dirs = ["tests", "validation"]
+skips = ["B105"]

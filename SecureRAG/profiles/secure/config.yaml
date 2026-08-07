@@ -1,0 +1,36 @@
+# SecureRAG profile overrides.
+#
+# Merged on top of configs/config.yaml, exactly as VulnerableRAG's profile file is. Deliberately
+# tiny: ports, storage paths, and the three API-exposure switches -- nothing that would change
+# retrieval or generation behaviour, because a functional difference between the two applications
+# would make the differential comparison measure the wrong thing.
+#
+# THERE IS NO SECURITY TOGGLE IN THIS FILE.
+# The control chain is composed in profile.py, in code. configs/security.yaml tunes thresholds
+# within those controls but cannot remove one (ADR-009).
+version: 1
+profile: secure
+
+server:
+  # SecureRAG takes 9001/8602 so both applications can run side by side and be scanned in the same
+  # session. VulnerableRAG keeps 9000/8601.
+  api_port: 9001
+  ui_port: 8602
+
+storage:
+  database_path: "./data/secure.db"
+
+api:
+  # Retrieved chunks and sources stay exposed. They are how an operator verifies that an answer is
+  # grounded, and RAGStrike's retrieval-integrity checks need them -- withholding them would make
+  # SecureRAG score better by being less inspectable, which is not a security improvement.
+  expose_retrieved_chunks: true
+  expose_sources: true
+
+  # The system prompt is NOT exposed. This is the one API-surface difference between the two
+  # applications, and it is the difference the endpoint exists to demonstrate: `GET /health` on
+  # VulnerableRAG hands out its own instructions to anyone who asks (weakness V5).
+  #
+  # The field remains in the response schema and returns null, so the two APIs stay
+  # schema-compatible. A missing field would break clients; a null one tells them the truth.
+  expose_system_prompt: false

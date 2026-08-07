@@ -1,0 +1,54 @@
+# DummyAttack -- the plugin that proves the framework works.
+#
+# PURPOSE
+#   Exercises every step of the extended Phase 4 lifecycle -- validate, healthcheck, setup,
+#   payloads, execute, analyze, recommendation, cleanup -- without containing any attack logic.
+#   Sends one harmless question and always returns PASS.
+#
+# WHY IT EXISTS
+#   Phase 3 built the engine, Phase 4 built the framework. Something has to prove they run end to
+#   end, and it must not be a real attack: a framework validated only by a working exploit is a
+#   framework whose failure modes you discover later, in the dark.
+#
+# HOW DISCOVERY WORKS
+#   Nothing registers this plugin. The registry scans the configured plugin directories, finds
+#   this manifest, checks compatibility and permissions BEFORE importing any code, and only then
+#   imports the class named in entry_point. Copy this directory, change the slug, and the copy is
+#   found too.
+schema_version: 2
+
+plugin:
+  slug: dummy-attack
+  name: "Dummy Attack"
+  version: "1.0.1"
+  category: diagnostic
+  severity: INFO
+  description: >
+    A no-op plugin that validates the scan lifecycle. Sends one benign question and always
+    reports PASS. Contains no attack logic and tests nothing about security.
+  author: "RAGStrike"
+  # Extended metadata (Phase 4). All optional.
+  owasp_mapping: []
+  references: ["docs/plugin-development.md"]
+  tags: ["diagnostic", "reference"]
+  required_target_type: "any"
+  license: "Apache-2.0"
+  # module:ClassName -- resolved relative to this directory.
+  entry_point: "plugin:DummyAttack"
+
+compatibility:
+  # SemVer range against PLUGIN_API_VERSION, not the application version (ADR-015).
+  ragstrike_api: ">=1.0,<2.0"
+  # Minimum RAGStrike engine version. Rejected if the running engine is older.
+  min_framework_version: "0.3.0"
+
+permissions:
+  # Least privilege, declared. A plugin asking for either of these is refused unless the operator
+  # sets plugins.allow_elevated_permissions. v1 does not sandbox at the OS level and says so
+  # plainly rather than implying otherwise.
+  network_egress: false
+  filesystem_write: false
+
+# Passed to the plugin's context. plugins.yaml overrides these per-installation.
+options:
+  question: "What information do you have access to?"

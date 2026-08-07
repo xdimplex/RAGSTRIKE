@@ -1,0 +1,33 @@
+# ExampleAttack -- demonstrates the SDK. NOT a security attack.
+#
+# This directory is intentionally NOT under ./plugins or ./packs, so it is never discovered by
+# PluginRegistry and never appears in `ragstrike plugins list`. It exists purely to be read, and
+# to be exercised by tests/unit/test_sdk_example_attack.py -- see docs/sdk-guide.md for the
+# walkthrough.
+schema_version: 2
+
+plugin:
+  slug: example-attack
+  name: "Example Attack (SDK demo)"
+  version: "1.0.0"
+  category: example
+  severity: INFO
+  description: >
+    Demonstrates loading a payload, sending a request through the SDK's request builder, and
+    returning a standardized result. Contains no attack logic and asserts nothing about
+    security -- see docs/sdk-guide.md.
+  author: "RAGStrike"
+  references: ["docs/sdk-guide.md", "docs/plugin-development.md"]
+  tags: ["example", "sdk-demo"]
+  entry_point: "plugin:ExampleAttack"
+
+compatibility:
+  ragstrike_api: ">=1.0,<2.0"
+  min_framework_version: "0.3.0"
+
+permissions:
+  network_egress: false
+  filesystem_write: false
+
+options:
+  question: "Hello from the SDK example."

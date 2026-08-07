@@ -1,0 +1,52 @@
+# --------------------------------------------------------------------------------------------------
+# RAGStrike -- target definitions
+#
+# Separate from config.yaml because targets change far more often than engine settings, and because
+# each target carries an authorization record that deserves to be reviewable on its own.
+#
+# THE AUTHORIZATION BLOCK IS REQUIRED.
+#   No scan starts without it (ADR-017). It is a persisted field, not a checkbox, and it is carried
+#   into every result -- so a report always says who authorized the testing that produced it.
+#
+# NEVER PUT A CREDENTIAL IN THIS FILE. Reference an environment variable instead.
+# --------------------------------------------------------------------------------------------------
+version: 1
+
+targets:
+  - name: vulnerable-rag
+    url: "http://127.0.0.1:9000"
+    adapter: fastapi
+    timeout: 300
+    enabled: true
+
+    authorization:
+      authorized_by: "local-operator"
+      authorization_ref: "LOCAL-LAB"
+      scope: >
+        Local VulnerableRAG instance owned by the operator. Loopback only.
+        No third-party systems.
+
+    # The fastapi adapter is configuration-driven: request shaping and response extraction are
+    # declared here as dotted paths, so supporting a different bespoke API is a change to this file
+    # rather than a change to the adapter. These defaults already match VulnerableRAG.
+    options:
+      chat_path: "/chat"
+      health_path: "/health"
+      prompt_field: "message"
+      session_field: "session_id"
+      answer_path: "answer"
+      chunks_path: "retrieved_chunks"
+      sources_path: "sources"
+      session_path: "session_id"
+
+  # SecureRAG, built in Phase 13. Enabled in Phase 14 so the differential pair can actually be
+  # measured -- RAGStrike is only correct if it grades one of these badly and the other cleanly.
+  - name: secure-rag
+    url: "http://127.0.0.1:9001"
+    adapter: fastapi
+    timeout: 300
+    enabled: true
+    authorization:
+      authorized_by: "local-operator"
+      authorization_ref: "LOCAL-LAB"
+      scope: "Local SecureRAG instance owned by the operator. Loopback only."
