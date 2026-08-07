@@ -1,0 +1,254 @@
+NORTHWIND ANALYTICS LTD
+EMPLOYEE HANDBOOK — 2026 EDITION
+Document reference: NW-HR-001  ·  Revision 7  ·  Owner: People Operations
+Classification: Internal
+
+--------------------------------------------------------------------------------
+1. PURPOSE AND SCOPE
+--------------------------------------------------------------------------------
+
+This handbook sets out the terms, expectations, and entitlements that apply to all
+permanent and fixed-term employees of Northwind Analytics Ltd ("the Company"),
+including staff based at the Pune Development Centre, the Bengaluru office, and
+those working under approved remote arrangements within India.
+
+It does not apply to independent contractors, agency staff, or vendor personnel,
+whose terms are governed by their respective engagement agreements. Where this
+handbook conflicts with an individual employment contract, the contract prevails.
+
+The handbook is reviewed annually by People Operations and approved by the
+Executive Committee. Revision 7 supersedes all previous editions and took effect
+on 1 January 2026.
+
+
+--------------------------------------------------------------------------------
+2. WORKING HOURS AND ATTENDANCE
+--------------------------------------------------------------------------------
+
+Standard working hours are 09:30 to 18:30, Monday to Friday, inclusive of a
+one-hour unpaid lunch break. Core hours, during which all employees are expected
+to be contactable, are 11:00 to 16:00.
+
+Flexible start times between 08:00 and 10:30 are available to all employees with
+the agreement of their line manager and do not require formal application.
+
+Employees working on client engagements in other time zones may agree an alternate
+schedule with their engagement lead. Such arrangements are recorded in the HR
+system and reviewed at the end of each engagement.
+
+Overtime is not routinely expected. Where sustained additional hours are required
+by a project, the engagement lead must obtain written approval from the department
+head in advance, and compensatory time off is granted at a rate of 1:1.
+
+
+--------------------------------------------------------------------------------
+3. ANNUAL LEAVE
+--------------------------------------------------------------------------------
+
+All full-time employees receive 25 days of paid annual leave per calendar year, in
+addition to the 12 public holidays observed at their primary work location.
+
+Leave accrues monthly at a rate of 2.083 days. New joiners accrue from their start
+date; leavers are paid in lieu of any accrued but untaken balance in their final
+salary payment.
+
+Requests must be submitted through the HR portal and approved by the employee's
+line manager before travel is booked. Requests of five consecutive days or more
+should be submitted at least three weeks in advance. The Company does not
+unreasonably refuse leave, but may decline requests that coincide with a critical
+delivery milestone.
+
+A maximum of 10 days may be carried into the following calendar year and must be
+used before 31 March. Balances above 10 days are forfeited. Carry-over beyond
+31 March is granted only where leave was refused for business reasons, and requires
+department head approval.
+
+Part-time employees receive a pro-rata entitlement calculated on contracted hours.
+
+
+--------------------------------------------------------------------------------
+4. SICK LEAVE AND MEDICAL ABSENCE
+--------------------------------------------------------------------------------
+
+Employees are entitled to 12 days of paid sick leave per calendar year. Sick leave
+does not accrue and does not carry over.
+
+Absence of one or two days requires notification to the line manager before 10:00
+on the first day of absence. Absence of three or more consecutive days requires a
+medical certificate from a registered practitioner, submitted to People Operations
+within five working days of returning to work.
+
+Extended medical absence beyond 12 days is handled under the Company's long-term
+absence procedure, which provides for a further 30 days at half pay subject to
+medical review. Employees should contact People Operations directly.
+
+Medical information is held confidentially by People Operations and is not shared
+with line managers beyond a statement of fitness to work.
+
+
+--------------------------------------------------------------------------------
+5. PARENTAL AND CARER LEAVE
+--------------------------------------------------------------------------------
+
+Maternity leave of 26 weeks at full pay is available to employees who have
+completed 80 days of service in the 12 months preceding the expected date of
+delivery, in line with the Maternity Benefit Act.
+
+Paternity leave of 15 working days at full pay may be taken within six months of
+the birth or adoption, in up to three separate blocks.
+
+Adoption leave mirrors maternity leave where the adopted child is under one year
+of age, and is 12 weeks otherwise.
+
+Carer's leave of five days per year is available for employees with caring
+responsibilities for a dependant. It is unpaid but does not affect continuity of
+service or benefit entitlement.
+
+
+--------------------------------------------------------------------------------
+6. REMOTE AND HYBRID WORKING
+--------------------------------------------------------------------------------
+
+The Company operates a hybrid model. Employees are expected in their assigned
+office a minimum of two days per week, with Wednesday designated a common
+in-office day for all engineering teams.
+
+Fully remote arrangements are approved on an individual basis by the department
+head and are reviewed every six months. Approval considers role suitability,
+performance, and team coverage.
+
+Employees working remotely must:
+
+  - Maintain a private working environment suitable for confidential calls.
+  - Connect to Company systems only through the approved VPN client.
+  - Not use personal cloud storage for Company documents.
+  - Not work from a location outside India without prior written approval from
+    both the department head and the Information Security team, as this carries
+    data residency implications.
+
+The Company provides a one-time home office allowance of INR 25,000 and an annual
+connectivity allowance of INR 18,000 to approved remote workers.
+
+
+--------------------------------------------------------------------------------
+7. EXPENSES
+--------------------------------------------------------------------------------
+
+Reasonable business expenses are reimbursed on production of a valid receipt.
+Claims must be submitted within 60 days of the expense being incurred; claims
+outside that window require department head approval.
+
+Standard limits:
+
+  Domestic accommodation, per night      INR  6,500
+  Metro accommodation, per night         INR  9,000
+  Meals, per day while travelling        INR  2,000
+  Local transport, per day               INR  1,200
+  Client entertainment, per head         INR  3,500
+
+Air travel is booked in economy class for flights under six hours. Premium economy
+is permitted above six hours with department head approval. Business class requires
+Executive Committee approval and is not granted for domestic travel.
+
+Expenses are approved by the claimant's line manager. Self-approval is not
+permitted under any circumstances, including for department heads, whose claims
+are approved by the Chief Financial Officer.
+
+
+--------------------------------------------------------------------------------
+8. PERFORMANCE AND PROGRESSION
+--------------------------------------------------------------------------------
+
+Performance is reviewed twice yearly, in April and October. Reviews assess delivery
+against agreed objectives, technical contribution, and collaboration.
+
+Ratings are: Exceptional, Strong, Consistent, Developing, and Below Expectations.
+The Company does not operate a forced distribution.
+
+Promotion decisions are made in the April cycle and take effect from 1 July.
+Salary review occurs annually in April, effective 1 June.
+
+Employees rated Below Expectations enter a structured support plan of 90 days with
+defined objectives and fortnightly review. The plan is a genuine attempt at
+improvement, not a procedural step toward dismissal.
+
+
+--------------------------------------------------------------------------------
+9. CODE OF CONDUCT
+--------------------------------------------------------------------------------
+
+Employees are expected to act with integrity, treat colleagues and clients with
+respect, and protect the Company's and its clients' confidential information.
+
+The Company does not tolerate harassment, discrimination, or victimisation on any
+ground. Concerns may be raised with a line manager, People Operations, or through
+the confidential reporting channel described in section 11.
+
+Conflicts of interest — including outside employment, directorships, and financial
+interests in suppliers or competitors — must be declared to People Operations
+within 14 days of arising.
+
+Gifts from clients or suppliers with a value above INR 2,500 must be declared and
+may not be accepted without department head approval. Cash and cash equivalents may
+never be accepted, at any value.
+
+
+--------------------------------------------------------------------------------
+10. DISCIPLINARY AND GRIEVANCE
+--------------------------------------------------------------------------------
+
+The disciplinary procedure has four stages: informal discussion, first written
+warning, final written warning, and dismissal. Gross misconduct may result in
+dismissal without prior warning.
+
+Employees have the right to be accompanied by a colleague at any formal hearing and
+the right to appeal any formal outcome within 10 working days.
+
+Grievances should first be raised informally with the line manager. Where that is
+inappropriate or unsuccessful, a formal grievance may be submitted in writing to
+People Operations, who will appoint an investigating manager not previously
+involved in the matter.
+
+
+--------------------------------------------------------------------------------
+11. CONFIDENTIAL REPORTING
+--------------------------------------------------------------------------------
+
+Employees who become aware of conduct that is unlawful, unsafe, or contrary to this
+handbook may report it confidentially to the Company Secretary or through the
+independent reporting line operated by a third-party provider.
+
+Reports may be made anonymously. The Company will not retaliate against anyone who
+raises a concern in good faith, and any attempt to do so is itself treated as gross
+misconduct.
+
+
+--------------------------------------------------------------------------------
+12. LEAVING THE COMPANY
+--------------------------------------------------------------------------------
+
+Notice periods are 30 days during probation, 60 days for employees below manager
+grade, and 90 days for manager grade and above.
+
+On the final working day, all Company property — laptop, access card, mobile
+device, and any client materials — must be returned to the IT Service Desk. Access
+to Company systems is revoked at 18:30 on the final working day.
+
+Post-employment obligations regarding confidentiality and non-solicitation continue
+for 12 months and are set out in the individual employment contract.
+
+Exit interviews are offered to all leavers and are conducted by People Operations.
+Participation is voluntary and the content is not shared with the line manager in
+attributable form.
+
+
+--------------------------------------------------------------------------------
+DOCUMENT CONTROL
+--------------------------------------------------------------------------------
+
+Version 7.0  ·  Approved 12 December 2025  ·  Effective 1 January 2026
+Next scheduled review: December 2026
+Questions: People Operations, extension 4402
+
+All figures, names, and identifiers in this document are synthetic and exist for
+demonstration purposes only. Northwind Analytics Ltd is a fictional entity.

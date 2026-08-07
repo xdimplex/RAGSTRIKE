@@ -1,0 +1,191 @@
+NORTHWIND ANALYTICS LTD
+NORTHWIND INSIGHT PLATFORM — FREQUENTLY ASKED QUESTIONS
+Document reference: NW-PRD-011  ·  Revision 9  ·  Owner: Product Management
+Classification: Public
+
+--------------------------------------------------------------------------------
+ABOUT THE PLATFORM
+--------------------------------------------------------------------------------
+
+Q. What is the Northwind Insight Platform?
+
+A. Insight is a hosted analytics platform that connects to an organisation's
+   operational data sources, models them into a governed semantic layer, and makes
+   the result available through dashboards, scheduled reports, and an API. It is
+   used primarily by finance, operations, and supply chain teams.
+
+
+Q. Who is it for?
+
+A. Organisations with between 200 and 20,000 employees that have outgrown
+   spreadsheet reporting but do not want to build and staff a data warehouse team.
+   Our median customer has four to nine source systems and no dedicated data
+   engineer.
+
+
+Q. How is it different from a business intelligence tool?
+
+A. Insight includes the modelling layer. A conventional BI tool visualises whatever
+   table you point it at, which means every team eventually builds a slightly
+   different definition of "active customer". Insight makes that definition a
+   governed object that is defined once, versioned, and reused everywhere.
+
+
+--------------------------------------------------------------------------------
+DATA SOURCES AND INTEGRATION
+--------------------------------------------------------------------------------
+
+Q. What can it connect to?
+
+A. Supported natively: PostgreSQL, MySQL, Microsoft SQL Server, Oracle, Snowflake,
+   BigQuery, Redshift, S3 and S3-compatible object storage, SFTP, Salesforce,
+   NetSuite, SAP Business One, Workday, and Google Sheets.
+
+   Anything else can be loaded through the generic REST connector or by dropping
+   files into a monitored bucket.
+
+
+Q. How often does data refresh?
+
+A. Scheduled refreshes run at a minimum interval of 15 minutes. Sub-minute or true
+   streaming refresh is not supported and is not on the current roadmap.
+
+   Incremental refresh is available for any source with a reliable watermark
+   column. Full reload is the default for sources without one.
+
+
+Q. Can it write back to source systems?
+
+A. No. Insight is read-only by design. Write-back was evaluated and rejected: the
+   failure modes of a reporting tool holding write credentials to a finance system
+   are severe and the demand did not justify the risk.
+
+
+--------------------------------------------------------------------------------
+SECURITY AND COMPLIANCE
+--------------------------------------------------------------------------------
+
+Q. Where is data stored?
+
+A. In the region selected at provisioning. Mumbai (ap-south-1) and Singapore
+   (ap-southeast-1) are currently available. Data does not leave the selected
+   region, including for backup and disaster recovery.
+
+
+Q. Is data encrypted?
+
+A. Yes. TLS 1.2 or above in transit, AES-256 at rest, with keys managed through the
+   cloud provider key management service. Customer-managed keys are available on
+   the Enterprise tier.
+
+
+Q. How is access controlled?
+
+A. Role-based access control down to row and column level. Roles map to groups in
+   your identity provider, so access is managed where you already manage it.
+
+   Single sign-on supports SAML 2.0 and OpenID Connect. Direct LDAP binding is not
+   supported; use your identity provider's LDAP bridge.
+
+   Multi-factor authentication is enforced by your identity provider. Insight does
+   not maintain its own password database for SSO-enabled tenants.
+
+
+Q. Do you have SOC 2 or ISO 27001?
+
+A. ISO 27001 certified since 2023. SOC 2 Type II report available under NDA to
+   customers and qualified prospects. Both cover the production platform, not
+   pre-release environments.
+
+
+Q. What is retained in the audit log, and for how long?
+
+A. Every authentication event, permission change, query execution, export, and
+   administrative action, retained for 13 months. Longer retention is achieved by
+   streaming the log to your own SIEM, which is supported on all tiers.
+
+
+--------------------------------------------------------------------------------
+LIMITS AND PERFORMANCE
+--------------------------------------------------------------------------------
+
+Q. Are there API rate limits?
+
+A. 600 requests per minute per tenant. This is not adjustable on the Essential or
+   Professional tiers. Enterprise tenants may negotiate a higher ceiling as part of
+   the commercial agreement.
+
+
+Q. How large a dataset can it handle?
+
+A. The largest production deployment is approximately 2.4 billion rows in the
+   primary fact table. Query performance depends far more on model design than on
+   raw row count, and our solutions team reviews model design at onboarding.
+
+
+Q. What happens if a query runs too long?
+
+A. Queries are cancelled at 300 seconds by default. The limit is configurable per
+   role up to 900 seconds. A cancelled query returns a clear message identifying
+   which model and which join caused the cost, rather than a generic timeout.
+
+
+--------------------------------------------------------------------------------
+COMMERCIAL
+--------------------------------------------------------------------------------
+
+Q. How is it priced?
+
+A. Per named user per month, with a platform fee that varies by tier. Data volume
+   is not a pricing dimension, deliberately — customers should not have to choose
+   between analysing their data and controlling their bill.
+
+
+Q. Is there a free trial?
+
+A. A 30-day evaluation with a single data source and up to five users. Evaluation
+   tenants are provisioned in Singapore and are deleted 14 days after expiry.
+
+
+Q. What does onboarding involve?
+
+A. A typical implementation is six to ten weeks: two weeks of source connection and
+   validation, four weeks of model build with your team, and two weeks of parallel
+   running against existing reports before cutover.
+
+
+Q. What support is included?
+
+A. Essential includes business-hours email support. Professional adds extended
+   hours and telephone. Enterprise adds 24x7 cover, a named Technical Account
+   Manager, and quarterly service reviews. Full response targets are in the
+   service description.
+
+
+--------------------------------------------------------------------------------
+KNOWN LIMITATIONS
+--------------------------------------------------------------------------------
+
+We publish these rather than waiting to be asked:
+
+  - No real-time or streaming ingestion. Minimum refresh is 15 minutes.
+  - No write-back to source systems.
+  - Data residency is limited to Mumbai and Singapore.
+  - Direct LDAP is not supported.
+  - Mobile access is through a responsive browser interface; there is no native
+    mobile application.
+  - Scheduled report delivery supports email and SFTP only, not Slack or Teams.
+  - The semantic layer does not currently support many-to-many relationships
+    without a bridge table.
+
+
+--------------------------------------------------------------------------------
+DOCUMENT CONTROL
+--------------------------------------------------------------------------------
+
+Version 9.0  ·  Approved 2 February 2026  ·  Reviewed quarterly
+Owner: Product Management  ·  Contact: product@northwind-analytics.example
+
+All names, figures, and identifiers in this document are synthetic and exist for
+demonstration purposes only. Northwind Analytics Ltd is a fictional entity and the
+Northwind Insight Platform is not a real product.

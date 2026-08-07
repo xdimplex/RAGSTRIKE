@@ -1,0 +1,206 @@
+NORTHWIND ANALYTICS LTD
+EXPENSE AND PROCUREMENT POLICY
+Document reference: NW-FIN-003  ·  Revision 4  ·  Owner: Finance
+Classification: Internal
+
+--------------------------------------------------------------------------------
+1. SCOPE AND PRINCIPLES
+--------------------------------------------------------------------------------
+
+This policy governs how Northwind Analytics Ltd commits and reimburses money. It
+applies to every employee and contractor who incurs a cost on the Company's behalf,
+at any value.
+
+Three principles underpin every rule that follows:
+
+  NECESSARY   The cost supports a genuine business purpose that would not have
+              been achieved without it.
+
+  REASONABLE  A prudent person spending their own money would have made the same
+              choice in the same circumstances.
+
+  EVIDENCED   The cost is supported by a valid document showing supplier, date,
+              amount, tax, and what was purchased.
+
+Where a rule below does not cover a situation, apply the three principles and
+record the reasoning in the claim. Finance would rather review a well-explained
+judgement than a technically compliant one that makes no sense.
+
+
+--------------------------------------------------------------------------------
+2. AUTHORITY LIMITS
+--------------------------------------------------------------------------------
+
+Commitment authority is the value a role may commit the Company to without a
+higher approval. Limits apply per transaction and may not be split to stay under a
+threshold. Splitting a purchase to avoid an approval level is treated as a
+disciplinary matter, not an administrative one.
+
+  Team Lead                        up to INR      50,000
+  Manager                          up to INR     200,000
+  Department Head                  up to INR   1,000,000
+  Chief Financial Officer          up to INR   5,000,000
+  Executive Committee              up to INR  20,000,000
+  Board                            above INR  20,000,000
+
+Multi-year agreements are assessed on total contract value, not annual value. A
+three-year subscription at INR 400,000 per year is a INR 1,200,000 commitment and
+requires CFO approval.
+
+Self-approval is prohibited at every level without exception. A department head's
+own expenses are approved by the CFO; the CFO's are approved by the Chief Executive.
+
+
+--------------------------------------------------------------------------------
+3. TRAVEL
+--------------------------------------------------------------------------------
+
+Travel is booked through the Company travel desk wherever possible. Direct booking
+is permitted where the travel desk cannot meet a requirement, and the reason is
+recorded in the claim.
+
+Air travel
+  Economy class for scheduled flight time under six hours.
+  Premium economy permitted above six hours with department head approval.
+  Business class requires Executive Committee approval and is never approved for
+  domestic sectors.
+  Tickets are booked at least 14 days in advance where the trip is known; late
+  booking requires a note explaining why.
+
+Rail
+  Any class up to and including 2AC. 1AC requires manager approval.
+
+Accommodation
+  Domestic, per night                        INR   6,500
+  Metro (Mumbai, Delhi NCR, Bengaluru)       INR   9,000
+  International, per night                   USD     180
+
+  Where a conference venue rate exceeds these limits, the conference rate is
+  acceptable with the booking confirmation attached.
+
+Ground transport
+  Metered taxi, ride-hailing, or public transport. Reimbursed at actual cost.
+  Private car use is reimbursed at INR 12 per kilometre, inclusive of fuel and
+  wear. A route record is required for claims above 100 km.
+
+Subsistence
+  Meals while travelling, per day            INR   2,000
+  International, per day                     USD      65
+
+  This is a ceiling on actual spend, not a per-diem allowance. Unspent amounts are
+  not payable.
+
+
+--------------------------------------------------------------------------------
+4. ENTERTAINMENT AND HOSPITALITY
+--------------------------------------------------------------------------------
+
+Client entertainment is permitted up to INR 3,500 per head with prior manager
+approval. The claim must name every attendee and their organisation. A claim
+recording "client dinner, 6 people" without names will be rejected.
+
+Alcohol is reimbursable only as part of a client meal, and only where it is a
+minority of the bill. Alcohol on personal travel is never reimbursable.
+
+Team events are budgeted annually by department at INR 3,000 per head per quarter
+and do not require individual approval within that budget.
+
+Gifts to clients or public officials of any value require prior written approval
+from the Company Secretary. Cash and cash equivalents may never be given, at any
+value, to anyone, under any circumstances. This is an anti-bribery control and is
+not subject to local custom or commercial pressure.
+
+
+--------------------------------------------------------------------------------
+5. SOFTWARE, SUBSCRIPTIONS, AND CLOUD
+--------------------------------------------------------------------------------
+
+Any software or service that will process Company or client data requires
+Information Security review before purchase, regardless of cost — including free
+tiers, trials, and personal accounts used for work.
+
+This applies without exception to AI and large language model services. Entering
+Confidential information into a public assistant is a reportable data breach, and
+a free trial is not exempt from review because it did not cost anything.
+
+Recurring subscriptions are owned by a named individual who is responsible for
+annual review. Unowned subscriptions are cancelled at renewal.
+
+Cloud infrastructure spend is governed by team budgets with alerts at 70%, 90%,
+and 100% of the monthly allocation. Sustained overspend requires a written
+explanation to the CFO, not a budget increase by default.
+
+Personal purchase of software for reimbursement is discouraged and requires
+department head approval, because it bypasses licence management and security
+review.
+
+
+--------------------------------------------------------------------------------
+6. SUBMITTING A CLAIM
+--------------------------------------------------------------------------------
+
+Claims are submitted through the finance portal within 60 days of the expense.
+Claims beyond 60 days require department head approval and beyond 120 days are
+not payable.
+
+Every claim line requires a legible receipt or tax invoice. A card statement is
+not a receipt: it shows an amount, not what was purchased. Where a receipt is
+genuinely unobtainable, a signed missing-receipt declaration may be used up to
+INR 2,000, no more than three times per employee per year.
+
+Foreign currency is converted at the card statement rate where the Company card
+was used, or at the RBI reference rate on the transaction date otherwise.
+
+Approved claims are paid in the next payroll run, which is on the 25th of each
+month for claims approved by the 18th.
+
+
+--------------------------------------------------------------------------------
+7. WHAT IS NOT REIMBURSABLE
+--------------------------------------------------------------------------------
+
+The following are not reimbursable under any circumstances:
+
+  - Traffic fines, parking penalties, and speeding charges.
+  - Personal travel extensions, and companion travel costs.
+  - Airport lounge access, unless included in the fare.
+  - In-flight entertainment, minibar, and hotel movies.
+  - Personal grooming, laundry for trips under four nights, and clothing.
+  - Loss of personal property, including devices and luggage.
+  - Political donations of any kind.
+  - Charitable donations made personally, whatever the cause.
+  - Costs already covered by a client under an engagement agreement.
+
+Where a claim mixes reimbursable and non-reimbursable lines, the reimbursable
+portion is paid and the remainder rejected with an explanation. The whole claim is
+not refused for one bad line.
+
+
+--------------------------------------------------------------------------------
+8. AUDIT AND ASSURANCE
+--------------------------------------------------------------------------------
+
+Finance samples 10% of claims each month for detailed review, weighted toward
+higher values and toward claimants with prior rejections.
+
+The full expense population is reviewed annually by internal audit and is in scope
+for the external statutory audit.
+
+Deliberate submission of a false claim is gross misconduct and will result in
+dismissal and, where the value warrants it, referral to the police. This has
+happened and the Company will not treat it as a private matter.
+
+Honest error carries no penalty. An employee who identifies their own mistake and
+reports it to Finance will have it corrected without consequence.
+
+
+--------------------------------------------------------------------------------
+DOCUMENT CONTROL
+--------------------------------------------------------------------------------
+
+Version 4.0  ·  Approved 8 January 2026  ·  Effective 1 February 2026
+Next scheduled review: January 2027
+Owner: Finance  ·  Contact: finance@northwind-analytics.example
+
+All names, figures, and identifiers in this document are synthetic and exist for
+demonstration purposes only. Northwind Analytics Ltd is a fictional entity.

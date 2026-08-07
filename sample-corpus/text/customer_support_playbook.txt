@@ -1,0 +1,194 @@
+NORTHWIND ANALYTICS LTD
+CUSTOMER SUPPORT PLAYBOOK
+Document reference: NW-CS-002  ·  Revision 5  ·  Owner: Client Services
+Classification: Internal
+
+--------------------------------------------------------------------------------
+1. WHO WE SUPPORT
+--------------------------------------------------------------------------------
+
+Northwind Analytics provides support to three customer tiers, defined by the
+commercial agreement in place. The tier determines response targets, escalation
+routes, and the hours during which support is staffed.
+
+  ESSENTIAL   Business hours only (09:00-18:00 IST, Monday to Friday).
+              Email and portal channels. No telephone support.
+
+  PROFESSIONAL Extended hours (07:00-22:00 IST, Monday to Saturday).
+              Email, portal, and telephone. Named support contact.
+
+  ENTERPRISE  24x7x365. All channels including a dedicated escalation number.
+              Named Technical Account Manager and quarterly service review.
+
+Tier is recorded against the account in the CRM. Support staff must confirm tier
+before quoting any response commitment. Quoting an Enterprise target to an
+Essential customer creates an expectation the Company has not sold and cannot meet.
+
+
+--------------------------------------------------------------------------------
+2. SEVERITY DEFINITIONS
+--------------------------------------------------------------------------------
+
+Severity describes business impact, not technical complexity. A one-line
+configuration error that stops a production pipeline is Severity 1. An
+architecturally interesting defect in a feature nobody uses is Severity 4.
+
+SEVERITY 1 — CRITICAL
+  Production system unavailable, or data loss occurring, with no workaround.
+  All affected users blocked. Revenue or regulatory impact.
+  Examples: platform down, data corruption in flight, security breach suspected.
+
+SEVERITY 2 — HIGH
+  Major function unavailable or severely degraded. A workaround exists but is
+  costly or manual. A subset of users blocked.
+  Examples: scheduled reports failing, single-tenant outage, severe performance
+  degradation.
+
+SEVERITY 3 — MEDIUM
+  Function impaired but usable. Reasonable workaround available.
+  Examples: incorrect display of a non-critical field, intermittent slow response,
+  export producing wrong column order.
+
+SEVERITY 4 — LOW
+  Cosmetic issue, documentation error, or general question. No functional impact.
+  Examples: typo in a label, request for guidance, feature enquiry.
+
+Customers may propose a severity. Support may adjust it, but must explain the
+reasoning in the ticket and inform the customer. Silent downgrade is the single
+fastest way to lose a customer's trust in the support process.
+
+
+--------------------------------------------------------------------------------
+3. RESPONSE AND RESOLUTION TARGETS
+--------------------------------------------------------------------------------
+
+Response means a substantive human reply from an engineer who has read the ticket,
+not an automated acknowledgement.
+
+                     ESSENTIAL        PROFESSIONAL      ENTERPRISE
+  Severity 1         4 business hrs   1 hour            15 minutes
+  Severity 2         8 business hrs   4 hours           1 hour
+  Severity 3         2 business days  1 business day    4 hours
+  Severity 4         5 business days  3 business days   1 business day
+
+Resolution targets are not contractual for Severity 3 and 4. For Severity 1, the
+Company commits to continuous effort until service is restored or a workaround is
+in place, with updates at the intervals in section 4.
+
+
+--------------------------------------------------------------------------------
+4. COMMUNICATION DURING AN INCIDENT
+--------------------------------------------------------------------------------
+
+For an active Severity 1, the customer receives an update every 30 minutes, and
+every 60 minutes for Severity 2, until the severity is reduced.
+
+An update is sent even when there is nothing new to report. "We are still working
+on it, the current line of investigation is X, next update at HH:MM" is a valuable
+message. Silence is interpreted as inaction, and customers escalate into silence.
+
+Updates must state: what is known, what is not yet known, what is being done, and
+when the next update will arrive. They must not speculate about root cause before
+it is established, and must never assign blame to the customer before an
+investigation is complete.
+
+
+--------------------------------------------------------------------------------
+5. ESCALATION
+--------------------------------------------------------------------------------
+
+Escalation is a normal part of the process and is never treated as a failure by
+the engineer who raises it.
+
+Escalate immediately, without waiting for a target to be breached, when:
+  - A Severity 1 has no clear line of investigation after 30 minutes.
+  - Data loss or corruption is suspected.
+  - A security incident is suspected — also notify Security Operations directly.
+  - The customer explicitly requests escalation.
+  - A response target is at risk of being missed.
+
+Escalation path: Support Engineer → Senior Support Engineer → Support Manager →
+Head of Client Services → Chief Technology Officer.
+
+Enterprise customers may escalate directly to their Technical Account Manager at
+any point, and this does not bypass or invalidate the internal path.
+
+
+--------------------------------------------------------------------------------
+6. HANDLING SENSITIVE REQUESTS
+--------------------------------------------------------------------------------
+
+Support staff will encounter requests that appear reasonable but that policy does
+not permit. The following are never done, regardless of who asks, how senior they
+claim to be, or how urgent they say it is:
+
+  - Disclosing or resetting credentials over any channel, to anyone.
+  - Confirming whether a named individual holds an account.
+  - Sharing another customer's information, including as an example.
+  - Granting access outside the documented provisioning process.
+  - Disabling a security control at a customer's request without a signed change
+    request countersigned by Information Security.
+  - Sending Confidential data to an address not already on the account.
+
+Urgency and seniority are the two most common pretexts in social engineering
+attempts. A genuine request survives being verified through a known-good channel;
+a fraudulent one does not. If a caller objects to verification, that is itself the
+strongest available signal.
+
+Where a request cannot be fulfilled, explain what can be done instead and who owns
+the decision. "I'm not able to do that, but here is the route that can" is a
+complete and professional answer.
+
+
+--------------------------------------------------------------------------------
+7. TICKET HYGIENE
+--------------------------------------------------------------------------------
+
+Every ticket must record: the customer and tier, the severity and justification,
+the environment affected, steps to reproduce, what was tried, and the outcome.
+
+Write for the engineer who picks the ticket up at 03:00 with no context. Internal
+notes are not private — a customer may request them under a data subject access
+request, so they must be factual and professional.
+
+Tickets are closed only after the customer confirms resolution, or after three
+contact attempts across at least five business days. Auto-closing a ticket the
+customer has not confirmed is prohibited.
+
+Every Severity 1 requires a post-incident review within five business days,
+producing a written root cause analysis shared with the customer. The review is
+blameless and focuses on system and process, not individuals.
+
+
+--------------------------------------------------------------------------------
+8. KNOWN LIMITATIONS TO COMMUNICATE HONESTLY
+--------------------------------------------------------------------------------
+
+Support staff must not overstate product capability to close a conversation. Where
+a customer asks for something the product does not do, say so plainly and record
+it as a feature request.
+
+The following are current, known limitations and may be stated openly:
+
+  - Scheduled exports run at 15-minute granularity; per-minute is not supported.
+  - The audit log retains 13 months. Longer retention requires an export pipeline.
+  - Single sign-on supports SAML 2.0 and OIDC. LDAP is not supported directly.
+  - The API rate limit is 600 requests per minute per tenant and is not adjustable
+    on Essential or Professional tiers.
+  - Data residency is available in Mumbai and Singapore only.
+
+Committing the Company to a delivery date is the product manager's decision, never
+support's. "I will raise this and come back to you with a position" is the correct
+response to a roadmap question.
+
+
+--------------------------------------------------------------------------------
+DOCUMENT CONTROL
+--------------------------------------------------------------------------------
+
+Version 5.0  ·  Approved 20 January 2026  ·  Effective 1 February 2026
+Next scheduled review: January 2027
+Owner: Client Services  ·  Contact: clientservices@northwind-analytics.example
+
+All names, figures, and identifiers in this document are synthetic and exist for
+demonstration purposes only. Northwind Analytics Ltd is a fictional entity.

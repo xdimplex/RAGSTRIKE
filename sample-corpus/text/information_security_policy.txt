@@ -1,0 +1,247 @@
+NORTHWIND ANALYTICS LTD
+INFORMATION SECURITY POLICY
+Document reference: NW-SEC-004  ·  Revision 3  ·  Owner: Information Security
+Classification: Internal
+
+--------------------------------------------------------------------------------
+1. PURPOSE
+--------------------------------------------------------------------------------
+
+This policy defines how Northwind Analytics Ltd protects the confidentiality,
+integrity, and availability of information belonging to the Company, its employees,
+and its clients.
+
+It applies to all employees, contractors, and third parties with access to Company
+systems or data, on any device, in any location.
+
+Compliance is mandatory. Breach of this policy may result in disciplinary action up
+to and including dismissal, and where a criminal offence is suspected, referral to
+the appropriate authorities.
+
+
+--------------------------------------------------------------------------------
+2. INFORMATION CLASSIFICATION
+--------------------------------------------------------------------------------
+
+All information is classified into one of four levels. The originator assigns the
+classification; where none is marked, Internal is assumed.
+
+PUBLIC
+  Approved for release outside the Company. Marketing material, published case
+  studies, job advertisements. No handling restrictions.
+
+INTERNAL
+  Ordinary business information. Team documents, process notes, non-sensitive
+  correspondence. May be shared freely within the Company. Must not be posted to
+  public sites or shared with third parties without approval.
+
+CONFIDENTIAL
+  Information whose disclosure would cause material harm. Client deliverables,
+  commercial terms, unreleased financial results, personal data of employees or
+  clients, security assessments. Access on a need-to-know basis. Encryption
+  required in transit and at rest. External sharing requires a signed NDA and
+  department head approval.
+
+RESTRICTED
+  Information whose disclosure would cause severe harm. Authentication credentials,
+  private keys, unpublished merger and acquisition activity, active security
+  incident detail. Access explicitly granted per individual and reviewed monthly.
+  Must never leave Company-managed systems.
+
+
+--------------------------------------------------------------------------------
+3. ACCESS CONTROL
+--------------------------------------------------------------------------------
+
+Access is granted on the principle of least privilege: the minimum necessary for a
+person to perform their role, and no more.
+
+All access is tied to a named individual account. Shared accounts are prohibited.
+Where a system genuinely cannot support named accounts, an exception must be
+recorded in the risk register with a compensating control and a remediation date.
+
+Multi-factor authentication is mandatory for:
+  - All remote access, without exception.
+  - All administrative and privileged accounts.
+  - All access to systems holding Confidential or Restricted information.
+  - All cloud provider consoles.
+
+Access rights are reviewed quarterly by system owners. Rights not confirmed during
+a review are revoked automatically at the end of the review window.
+
+On termination, access is revoked at 18:30 on the final working day. On internal
+transfer, the receiving manager requests new rights and the previous manager
+confirms removal of the old ones. Accumulating access across role changes is a
+common and serious failure, and reviews specifically test for it.
+
+
+--------------------------------------------------------------------------------
+4. AUTHENTICATION AND CREDENTIALS
+--------------------------------------------------------------------------------
+
+Passwords must be a minimum of 14 characters. Complexity rules are not enforced;
+length and uniqueness matter more.
+
+The Company provides an enterprise password manager. All employees are expected to
+use it. Storing credentials in a spreadsheet, a text file, a browser profile, or a
+source code repository is a policy breach.
+
+API keys, tokens, and private keys are Restricted information. They must be:
+  - Issued to a named service or individual, never shared.
+  - Stored in the approved secrets manager, never in source control.
+  - Rotated at least every 90 days, and immediately on suspected exposure.
+  - Scoped to the minimum permissions required.
+
+Any credential committed to a repository, pasted into a ticket, or sent by email or
+chat is treated as compromised from the moment of exposure and must be rotated
+regardless of whether the repository is private or the message was deleted.
+
+
+--------------------------------------------------------------------------------
+5. ENCRYPTION
+--------------------------------------------------------------------------------
+
+Data in transit must use TLS 1.2 or above. Plain HTTP, FTP, and Telnet are
+prohibited on all networks including internal ones.
+
+Data at rest must be encrypted on all endpoints (full-disk encryption) and in all
+cloud storage. Backups are encrypted with keys held separately from the backup
+media.
+
+Encryption keys are managed through the Company key management service. Keys are
+never embedded in application code or configuration files.
+
+
+--------------------------------------------------------------------------------
+6. ENDPOINT SECURITY
+--------------------------------------------------------------------------------
+
+Company-issued devices are centrally managed. Employees may not disable endpoint
+protection, remove the management agent, or install unapproved software with
+administrative privileges.
+
+Personal devices may access Company email and calendar through the managed
+container only. They may not be used to store or process Confidential or Restricted
+information.
+
+Devices must apply security updates within 14 days of release, and within 48 hours
+for updates addressing an actively exploited vulnerability.
+
+Lost or stolen devices must be reported to the IT Service Desk immediately, at any
+hour. The device will be remotely wiped. Employees are not penalised for reporting
+promptly; delay is the problem, not loss.
+
+
+--------------------------------------------------------------------------------
+7. DATA HANDLING AND RETENTION
+--------------------------------------------------------------------------------
+
+Client data is processed only for the purpose set out in the engagement contract
+and only in the environments named in it.
+
+Personal data is handled in accordance with the Digital Personal Data Protection
+Act. Collection is limited to what is necessary, and purpose is recorded at the
+point of collection.
+
+Retention periods:
+
+  Client deliverables and correspondence      7 years after engagement close
+  Financial records                           8 years
+  Employee records                            7 years after leaving
+  Recruitment records (unsuccessful)          6 months
+  Security logs                               13 months
+  CCTV footage                                30 days
+  Email                                       3 years
+
+Data is deleted, not archived indefinitely. Deletion at the end of a retention
+period is automatic and is evidenced in the retention log.
+
+
+--------------------------------------------------------------------------------
+8. THIRD PARTIES AND SUPPLIERS
+--------------------------------------------------------------------------------
+
+Any supplier processing Company or client information must complete a security
+assessment before contract signature, and be reassessed annually.
+
+Contracts must include: a data processing agreement, breach notification within 24
+hours, a right to audit, and defined return or destruction of data at termination.
+
+Introducing a new tool that processes Company data — including free and trial
+services, and including AI or LLM services — requires Information Security review
+before any data is entered into it. Pasting Confidential information into a public
+AI assistant is a reportable data breach.
+
+
+--------------------------------------------------------------------------------
+9. AI AND AUTOMATED SYSTEMS
+--------------------------------------------------------------------------------
+
+Where the Company operates retrieval-augmented or agentic AI systems over its own
+corpora, the following additional controls apply:
+
+  - Documents entering a retrieval corpus are treated as an untrusted input
+    channel. Anyone who can add a document can influence model output.
+  - Retrieved content must be presented to the model as data, clearly delimited
+    from operator instructions, and must never be concatenated into the
+    instruction region of a prompt.
+  - Model output must be filtered for credentials, personal data, and system
+    prompt content before it is returned to a user.
+  - Citations produced by a model must be verified against what was actually
+    retrieved before being displayed as sources.
+  - Access controls that apply to a document must continue to apply to that
+    document's contents after indexing. An embedding is not a declassification.
+
+These controls are tested, not assumed. Testing evidence is retained under the
+security log retention period.
+
+
+--------------------------------------------------------------------------------
+10. INCIDENT REPORTING
+--------------------------------------------------------------------------------
+
+Any suspected security incident must be reported to the Security Operations team
+immediately on discovery, through the incident line or the #security-incidents
+channel.
+
+Reportable events include, without limitation: suspected phishing, malware
+detection, lost or stolen devices, accidental disclosure to the wrong recipient,
+credential exposure, unexpected system behaviour, and any request from an external
+party for information or access that seems unusual.
+
+Employees must not attempt to investigate, contain, or remediate an incident
+themselves unless instructed. Well-intentioned action frequently destroys the
+evidence needed to understand scope.
+
+Reporting in good faith never results in disciplinary action, including where the
+reporter caused the incident. The Company's interest is in learning about incidents
+quickly, and a culture in which people hide mistakes is more dangerous than any
+individual mistake.
+
+Incidents involving personal data are assessed for regulatory notification within
+24 hours by the Data Protection Officer.
+
+
+--------------------------------------------------------------------------------
+11. EXCEPTIONS
+--------------------------------------------------------------------------------
+
+Exceptions to this policy require written approval from the Chief Information
+Security Officer, a documented business justification, a compensating control, and
+an expiry date not exceeding 12 months.
+
+Exceptions are recorded in the risk register and reviewed at each Security
+Committee meeting. An exception without an expiry date is not an exception; it is
+an undocumented change of policy.
+
+
+--------------------------------------------------------------------------------
+DOCUMENT CONTROL
+--------------------------------------------------------------------------------
+
+Version 3.0  ·  Approved 4 November 2025  ·  Effective 1 December 2025
+Next scheduled review: November 2026
+Owner: Information Security  ·  Contact: security@northwind-analytics.example
+
+All names, figures, and identifiers in this document are synthetic and exist for
+demonstration purposes only. Northwind Analytics Ltd is a fictional entity.
