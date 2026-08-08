@@ -151,7 +151,7 @@ you know it is a known shape and where the fix lives.
 | Symptom | Cause | Where it is fixed |
 |---|---|---|
 | `.venv/bin/python: No such file` | Windows venv copied from `D:\` | Step 3 rebuilds it |
-| Every `/chat` empty after exactly 180s | `max_tokens` exceeded `timeout_s` | `configs/config.yaml` — 384 tokens / 300s |
+| Every `/chat` empty after exactly 180s | `max_tokens` exceeded `timeout_s` | `configs/config.yaml` — 224 tokens / 300s |
 | Chat UI shows "Connection error — status 500" | starlette 1.4 vs streamlit 1.61 incompatibility | `starlette<1.4` pin in all three `pyproject.toml` |
 | A lab UI never binds its port | Streamlit's first-run email prompt blocking on stdin | `--server.headless true` in `main_ui.py` |
 | Dashboard prints a public External URL | Streamlit defaults to `0.0.0.0` | `RAGStrike/.streamlit/config.toml` |

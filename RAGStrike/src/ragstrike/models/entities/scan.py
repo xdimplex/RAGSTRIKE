@@ -73,6 +73,12 @@ class ScanSession:
     plugin_inventory: dict[str, str] = field(default_factory=dict)
     started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     finished_at: datetime | None = None
+    #: Operator-supplied label, so a scan is findable by what it was for rather than by its hex id.
+    #: Falls back to the id when blank -- see ``display_name``.
+    name: str = ""
+    #: The profile this scan ran. Stored because a FAIL at 22% coverage and a FAIL at 100% are
+    #: different claims, and the profile is what distinguishes them in a listing.
+    profile: str = ""
     plugins_total: int = 0
     plugins_executed: int = 0
     plugins_passed: int = 0
@@ -84,6 +90,16 @@ class ScanSession:
     @staticmethod
     def new_id() -> str:
         return uuid.uuid4().hex
+
+    @property
+    def display_name(self) -> str:
+        """What a human should see in a list. The label if there is one, else a short id.
+
+        Never the full 32-character hex: it is unreadable at a glance, identical in shape to every
+        other scan, and sorts by nothing meaningful. A short prefix is enough to correlate a row
+        with a report while staying scannable.
+        """
+        return self.name.strip() or f"scan-{self.id[:8]}"
 
     @property
     def elapsed_ms(self) -> int:

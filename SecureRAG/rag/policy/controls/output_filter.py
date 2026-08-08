@@ -106,6 +106,26 @@ _FENCE_MARKER_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+#: The retrieved-context HEADER the prompt builder writes above each chunk::
+#:
+#:     [1] source: data_retention_schedule.pdf | page: 0 | relevance: 0.626
+#:
+#: FOUND IN A REAL ANSWER. Asked "what are the financial records", SecureRAG replied with that line
+#: first and the actual answer second -- the model had copied the scaffolding it was shown.
+#:
+#: It is not a credential, so the masker ignored it; it is not a fence marker, so that check ignored
+#: it too. But it is still the prompt's internal structure arriving in a user-facing answer, and it
+#: tells a reader the corpus filenames, the page indices and the retrieval scores for a query. On the
+#: HARDENED lab that is exactly the kind of internal detail that should not travel outward.
+#:
+#: Stripped rather than refused: the answer AFTER the header is usually correct and useful, and
+#: throwing away a good answer over a leading artifact would be a worse trade than removing the
+#: artifact.
+_CONTEXT_HEADER_PATTERN = re.compile(
+    r"^\s*\[\d+\]\s*source:.*?(?:\|\s*relevance:\s*[\d.]+)\s*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
 #: Phrases that mark a legitimate refusal or a no-answer. These are correct outputs that are
 #: ungrounded BY DEFINITION -- "the documents do not cover this" cannot overlap the documents -- so
 #: they must be exempt or the control would refuse the very answer it wants the model to give.
@@ -147,6 +167,7 @@ class OutputFilter(SecurityPolicy):
         refuse_ungrounded: bool = True,
         grounding_max_chars: int = GROUNDING_MAX_CHARS,
         block_fence_markers: bool = True,
+        strip_context_headers: bool = True,
     ) -> None:
         self.max_answer_chars = max_answer_chars
         self.detect_prompt_echo = detect_prompt_echo
@@ -157,6 +178,8 @@ class OutputFilter(SecurityPolicy):
         # Defaults on, and there is deliberately no reason to turn it off outside a test that wants
         # to observe the raw leak. The markers are structural, never part of a legitimate answer.
         self.block_fence_markers = block_fence_markers
+        # On by default: a context header in an answer is never something a user asked for.
+        self.strip_context_headers = strip_context_headers
         self._shingles = self._build_shingles(system_prompt, echo_window)
 
     def on_response(self, ctx: ResponseContext) -> str:
@@ -180,6 +203,18 @@ class OutputFilter(SecurityPolicy):
                 extra={"policy": self.name},
             )
             return REFUSAL
+
+        # Strip the retrieved-context headers the model copied out of its own prompt. Done before the
+        # remaining checks so they see the answer a user would, not the scaffolding around it -- an
+        # answer that is nothing BUT a header, for instance, should read as empty rather than as
+        # grounded prose.
+        if self.strip_context_headers and _CONTEXT_HEADER_PATTERN.search(answer):
+            answer = _CONTEXT_HEADER_PATTERN.sub("", answer).strip()
+            ctx.notes.append("context-header-stripped")
+            log.info(
+                "retrieved-context headers removed from the answer",
+                extra={"policy": self.name},
+            )
 
         if self.detect_prompt_echo and self.echoes_system_prompt(answer):
             ctx.notes.append("system-prompt-echo-blocked")

@@ -70,10 +70,19 @@ def render(context: PageContext) -> None:
         ]
     )
 
-    section(f"Scans ({len(ordered)})")
-    render_table(scan_rows(ordered))
+    # ORDER: filter -> details -> findings -> compare -> the full table LAST.
+    #
+    # The table used to come first, so the most recent scan's details -- the thing an operator opened
+    # this page to read -- sat below twenty rows of history and, on a normal window, below the fold.
+    # History is reference material: useful, and rarely the reason anyone arrived. It reads better as
+    # an appendix than as a preamble.
+    #
+    # `_detail` renders the selected scan's summary, its actions and its findings, in that order.
     _detail(context, ordered)
     _compare(context, scans)
+
+    section(f"Scan history ({len(ordered)})")
+    render_table(scan_rows(ordered))
 
 
 def _toolbar(context: PageContext, scans: list[ScanView]) -> list[ScanView]:
@@ -112,35 +121,74 @@ def _detail(context: PageContext, scans: list[ScanView]) -> None:
     import streamlit as st
 
     section("Detail")
-    ids = [scan.id for scan in scans]
-    chosen_id = st.selectbox("Scan", ids, key="rs.hist.selected")
-    scan = next(s for s in scans if s.id == chosen_id)
+    # Readable labels as the OPTIONS, not via `format_func`.
+    #
+    # `format_func` was the obvious way to keep ids as values and show names, and it silently broke
+    # selection: with a `key`, the replayed choice is resolved through the FORMATTED label, so the
+    # stored id stopped matching and a different scan was selected. That is not cosmetic -- "Replay
+    # scan" would then have replayed a scan the operator never picked.
+    #
+    # Labels carry the id suffix so two scans of the same target and profile stay distinguishable,
+    # and the map back to the id is explicit.
+    # Uniqueness is ENFORCED, not assumed.
+    #
+    # The first attempt suffixed `scan.id[:8]`, which is unique for a 32-character hex id and not
+    # for the short ids the demo transport uses -- "scan-0006"[:8] is "scan-000", identical for
+    # every scan in the list. Labels collided, later scans overwrote earlier ones in the map, and
+    # picking the first entry returned a scan the operator had not chosen. "Replay scan" would then
+    # have replayed the wrong one, which is a good deal worse than an ugly dropdown.
+    by_label: dict[str, ScanView] = {}
+    for scan_item in scans:
+        parts = [
+            scan_item.name or "unnamed",
+            scan_item.target or "no target",
+            scan_item.profile or "no profile",
+        ]
+        label = "  ·  ".join(parts)
+        if label in by_label:
+            label = f"{label}  ·  {scan_item.id}"
+        by_label[label] = scan_item
 
-    left, middle, right = st.columns([1, 2, 2])
-    with left:
-        html(grade_hero(context.palette, scan.grade, coverage=scan.coverage or 1.0))
-    with middle:
-        html(
-            summary_card(
-                scan.name or scan.id,
-                {
-                    "Target": scan.target,
-                    "Profile": scan.profile,
-                    "Result": scan.outcome or scan.state.upper(),
-                    "Risk": f"{scan.risk_score:.1f} / 100",
-                    "Duration": format_duration(scan.duration_s),
-                    "Plugins executed": str(len(scan.plugins_executed)),
-                    "Started": scan.started_at,
-                },
+    chosen_label = st.selectbox("Scan", list(by_label), key="rs.hist.selected")
+    scan = by_label[str(chosen_label)]
+
+    # The summary and its actions in ONE bordered container.
+    #
+    # They were siblings: an HTML summary card, then a bare `st.columns` row of buttons. Nothing tied
+    # them together, so the card rendered across "Replay scan" and "Open in Reports" -- the buttons
+    # belonged to the scan visually and to the page structurally, and the layout followed the
+    # structure. Inside a container they are one flex column and the gap is spacing, not a collision.
+    with st.container(border=True):
+        left, middle, right = st.columns([1, 2, 2])
+        with left:
+            html(grade_hero(context.palette, scan.grade, coverage=scan.coverage or 1.0))
+        with middle:
+            html(
+                summary_card(
+                    scan.name or scan.id,
+                    {
+                        "Target": scan.target,
+                        "Profile": scan.profile or "--",
+                        "Result": scan.outcome or scan.state.upper(),
+                        "Risk": f"{scan.risk_score:.1f} / 100",
+                        "Duration": format_duration(scan.duration_s),
+                        "Plugins executed": str(scan.plugins_ran),
+                        "Started": scan.started_at,
+                        # The full id, once, where it is needed for correlating with a report --
+                        # rather than as the row label in a table of twenty.
+                        "Scan id": scan.id,
+                    },
+                    framed=False,
+                )
             )
-        )
-    with right:
-        html(severity_bars(context.palette, scan.severity_counts) or "")
+        with right:
+            html(severity_bars(context.palette, scan.severity_counts) or "")
 
-    if scan.plugins_executed:
-        st.caption("Plugins executed: " + ", ".join(scan.plugins_executed))
+        if scan.plugins_executed:
+            st.caption("Plugins executed: " + ", ".join(scan.plugins_executed))
 
-    _actions(context, scan)
+        _actions(context, scan)
+
     _findings(context, scan)
 
 

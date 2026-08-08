@@ -234,9 +234,14 @@ In **VulnerableRAG → Chat**:
 
 > *"What severity is a confirmed compromise of production, and who gets notified?"*
 
-When the answer lands, expand **Retrieved context**. This is the moment that matters: the audience
-sees *which* passages were selected, from which document, at what relevance — and that the answer is
-grounded in those and nothing else.
+First tick **Show retrieval details** in the sidebar. It is **off by default** — a person asking a
+question about a document should not be handed chunk indices and relevance scores, and on the
+hardened lab that is internal detail with no reason to leave the system. It stays available because
+it is the single most useful thing to show an audience.
+
+Then expand **Retrieved context**. This is the moment that matters: the audience sees *which*
+passages were selected, from which document, at what relevance — and that the answer is grounded in
+those and nothing else.
 
 ---
 

@@ -64,6 +64,21 @@ class Selection:
     slugs: frozenset[str]
     profile: ScanProfile | None = None
 
+    @property
+    def name(self) -> str:
+        """The underlying profile's ID, so the engine can record which profile a scan ran.
+
+        Without it the stored profile is blank and the scan listing cannot tell a 22%-coverage
+        smoke run from a 100%-coverage standard one -- two very different claims that otherwise
+        render identically.
+
+        The ID (``smoke``) rather than the display name ("Smoke test"): it is what an operator types
+        on the CLI, what ``configs/profiles/`` names its files, and what every other surface calls
+        the profile. A column reading "Smoke test" beside a `--profile smoke` command invites the
+        reader to wonder whether they are the same thing.
+        """
+        return getattr(self.profile, "id", "") or getattr(self.profile, "name", "") or ""
+
     def selects(self, slug: str) -> bool:
         if self.profile is not None and not self.profile.selects(slug):
             return False
@@ -206,6 +221,7 @@ class ScanService:
         profile_name: str | None,
         plugins: list[str] | None = None,
         categories: list[str] | None = None,
+        name: str = "",
     ) -> RunningScan:
         """Begin a scan and return immediately.
 
@@ -246,7 +262,9 @@ class ScanService:
         )
 
         running.task = asyncio.create_task(
-            self._run(engine, running, target=target, adapter=adapter, profile=selector),
+            self._run(
+                engine, running, target=target, adapter=adapter, profile=selector, name=name
+            ),
             name=f"scan-{scan_id}",
         )
         return running
@@ -269,6 +287,7 @@ class ScanService:
         target: Any,
         adapter: Any,
         profile: ProfileSelector | None,
+        name: str = "",
     ) -> None:
         def on_result(result: PluginResult) -> None:
             # Skipped packs are not progress. The scheduler emits every skip in one block before
@@ -294,6 +313,7 @@ class ScanService:
                 target=target,
                 adapter=adapter,
                 profile=profile,
+                name=name,
                 # The client already has this id. The engine must use it rather than mint its own,
                 # or `GET /scans/{id}` 404s on the very id `POST /scans` just returned.
                 scan_id=running.scan_id,

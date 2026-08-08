@@ -98,6 +98,16 @@ _COMPONENTS = """
   border-radius: var(--rs-radius-sm) var(--rs-radius-sm) 0 0;
 }
 .rs-card--raised { background: var(--rs-surface-raised); }
+/* For a card already sitting inside a bordered Streamlit container: no border of its own, no
+   margin, no top rule. Nested borders read as a rendering bug, and the margin was what pushed the
+   card's visual edge past the box the layout had reserved for it. */
+.rs-card--bare {
+  border: none;
+  background: transparent;
+  margin-bottom: 0;
+  padding: 0 0 var(--rs-space-sm);
+}
+.rs-card--bare::before { display: none; }
 .rs-card__title {
   font-size: var(--rs-text-md);
   font-weight: 600;
@@ -173,6 +183,48 @@ _COMPONENTS = """
 }
 
 .rs-stack { display: flex; flex-direction: column; gap: var(--rs-space-xs); }
+/* -- sidebar brand block -------------------------------------------------------------------- */
+/* Explicit vertical rhythm, because this is the one place three captions stack. Every line here
+   declares its own line-height: the header used to inherit, and inherited nothing. */
+.rs-brand { display: flex; flex-direction: column; gap: 4px; padding: 2px 0 6px; }
+.rs-brand__head { display: flex; align-items: center; gap: 8px; min-height: 24px; }
+/* `line-height: 1` and not 0. Zero collapsed the line box and let the next block start before the
+   text ended -- flex already removes the SVG's descender gap, which is what 0 was reaching for. */
+.rs-brand__mark { display: inline-flex; align-items: center; line-height: 1; }
+.rs-brand__name {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.rs-brand__tagline {
+  font-size: var(--rs-text-xs);
+  color: var(--rs-text-faint);
+  line-height: 1.35;      /* room for the descenders; without it the next line sits on them */
+  margin: 0;
+}
+/* The connection line and the API URL, which followed the tagline and landed on top of it. */
+.rs-conn { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 0; }
+.rs-conn .rs-metric__hint { line-height: 1.35; }
+
+/* The "open in a new tab" link. Styled as a button so it reads as the primary action it is, rather
+   than as body-text link jammed above a row of real buttons. */
+.rs-openlink {
+  display: block;
+  text-align: center;
+  padding: 0.34rem 0.7rem;
+  margin-bottom: 6px;
+  border: 1px solid var(--rs-accent);
+  border-radius: var(--rs-radius-sm);
+  background: var(--rs-accent-soft);
+  color: var(--rs-accent) !important;
+  font-size: var(--rs-text-sm);
+  font-weight: 600;
+  text-decoration: none !important;
+}
+.rs-openlink:hover { background: var(--rs-accent); color: #fff !important; }
+
 .rs-row { display: flex; align-items: center; gap: var(--rs-space-sm); flex-wrap: wrap; }
 .rs-row--split { justify-content: space-between; }
 

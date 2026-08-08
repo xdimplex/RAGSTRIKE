@@ -107,6 +107,22 @@ class ReportService:
         )
         return ReportView.from_payload(payload if isinstance(payload, Mapping) else {})
 
+    def inline_url(self, scan_id: str, fmt: str) -> str:
+        """A browsable URL for a stored report, or ``""`` when there is nothing to link to.
+
+        Points at the API rather than the dashboard on purpose. A report is rendered from target
+        responses -- attacker-influenced text -- so it must not be served from the dashboard's own
+        origin; the API is a separate origin holding no cookie or session for a script in a report
+        to reach.
+
+        Empty for the demo transport, which has no HTTP endpoint behind it: a dead link is worse
+        than an absent one.
+        """
+        base = getattr(self.transport, "base_url", "")
+        if not base or not scan_id:
+            return ""
+        return f"{base}/scans/{scan_id}/reports/{fmt}?inline=true"
+
     def open_report(self, scan_id: str, report_id: str, fmt: str) -> RenderedReport:
         """Fetch a rendered report for display or download.
 

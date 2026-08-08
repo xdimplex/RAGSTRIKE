@@ -97,6 +97,24 @@ with st.sidebar:
     if show_raw != bool(theme.preference("show_raw", False)):
         theme.remember("show_raw", show_raw)
 
+    # OFF BY DEFAULT, like the two above it.
+    #
+    # Every answer used to arrive with the retrieved filenames, page indices, per-chunk relevance
+    # scores, the elapsed milliseconds and the model name attached -- whether the reader wanted them
+    # or not. For a person asking a question about a document that is noise, and on the HARDENED lab
+    # it is internal detail leaving the system for no reason anyone asked for.
+    #
+    # It stays available because it is the single most useful thing to show an audience: the demo in
+    # GUIDE/00-WALKTHROUGH.md turns it on to make retrieval visible. Opt-in is the difference between
+    # a diagnostic an operator reaches for and a diagnostic every user is handed.
+    show_retrieval = st.checkbox(
+        "Show retrieval details",
+        value=bool(theme.preference("show_retrieval", False)),
+        help="Sources, chunks and relevance scores behind each answer. Off by default.",
+    )
+    if show_retrieval != bool(theme.preference("show_retrieval", False)):
+        theme.remember("show_retrieval", show_retrieval)
+
     st.divider()
     st.caption(
         f"Session: `{st.session_state[SESSION_KEY] or 'new'}`\n\n"
@@ -122,13 +140,17 @@ for turn in st.session_state[TURNS_KEY]:
         st.write(turn["question"])
     with st.chat_message("assistant"):
         st.write(turn["answer"])
-        meta = st.columns(3)
-        meta[0].caption(f"⏱ {turn['elapsed_ms']} ms")
-        meta[1].caption(f"📄 {turn['chunk_count']} chunks")
-        meta[2].caption(f"🤖 {turn['model']}")
-        source_list(turn.get("sources", []))
-        with st.expander("Retrieved context"):
-            chunk_viewer(turn.get("retrieved_chunks", []))
+        # The diagnostics are behind the sidebar's "Show retrieval details". A reader asking about a
+        # document does not need the chunk indices and relevance scores that produced the answer, and
+        # on the hardened lab they are internal detail with no reason to leave the system.
+        if show_retrieval:
+            meta = st.columns(3)
+            meta[0].caption(f"⏱ {turn['elapsed_ms']} ms")
+            meta[1].caption(f"📄 {turn['chunk_count']} chunks")
+            meta[2].caption(f"🤖 {turn['model']}")
+            source_list(turn.get("sources", []))
+            with st.expander("Retrieved context"):
+                chunk_viewer(turn.get("retrieved_chunks", []))
         if turn.get("prompt"):
             with st.expander("Assembled prompt (exactly what the model received)"):
                 st.code(turn["prompt"], language="text")

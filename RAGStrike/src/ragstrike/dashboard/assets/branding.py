@@ -23,21 +23,31 @@ LOGO_SVG = (
 
 
 def wordmark(accent: str, text_colour: str, *, subtitle: str = "") -> str:
-    """The logo plus product name, as used in the sidebar header."""
-    mark = tag("span", LOGO_SVG, style=style({"color": accent, "line-height": "0"}))
+    """The logo plus product name, as used in the sidebar header.
+
+    WHY THIS HAS ITS OWN CLASSES INSTEAD OF REUSING ``rs-row``/``rs-metric__hint``
+        It used to, and the sidebar header rendered as a pile: "RAGStrike" sitting on top of its own
+        tagline, with the connection line and the API URL overlapping both.
+
+        Two causes, and both needed the header to stop borrowing generic classes.
+
+        ``line-height: 0`` on the logo span collapsed the row's line box to nothing, so the block
+        after it began before the text had finished. It was there to stop the inline SVG adding
+        descender space -- correct instinct, wrong tool: ``display: flex`` on the row already
+        removes that, and zeroing the line height removes the text's height as well.
+
+        ``rs-metric__hint`` sets a font size and a colour and nothing else. That is fine for one
+        caption in a card; the header stacks THREE of them, and with no line-height and no margin
+        they had nothing keeping them apart.
+    """
+    mark = tag("span", LOGO_SVG, class_="rs-brand__mark", style=style({"color": accent}))
     name = tag(
         "span",
         escape(PRODUCT_NAME),
-        style=style(
-            {
-                "color": text_colour,
-                "font-weight": "700",
-                "font-size": "1.05rem",
-                "letter-spacing": "0.02em",
-            }
-        ),
+        class_="rs-brand__name",
+        style=style({"color": text_colour}),
     )
-    head = tag("div", mark + name, class_="rs-row")
-    if not subtitle:
-        return head
-    return head + tag("div", escape(subtitle), class_="rs-metric__hint")
+    head = tag("div", mark + name, class_="rs-brand__head")
+    if subtitle:
+        head += tag("div", escape(subtitle), class_="rs-brand__tagline")
+    return tag("div", head, class_="rs-brand")

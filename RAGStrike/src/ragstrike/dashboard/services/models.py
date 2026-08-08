@@ -270,12 +270,18 @@ class ScanView:
     id: str
     target: str = ""
     name: str = ""
-    profile: str = "standard"
+    #: Empty, NOT "standard". Defaulting to a real profile name made every scan whose profile was
+    #: not recorded claim it had run the deepest one -- a 22%-coverage smoke run displaying as
+    #: `standard` misstates the very thing coverage exists to qualify.
+    profile: str = ""
     state: str = "queued"
     started_at: str = ""
     finished_at: str = ""
     duration_s: float = 0.0
+    #: The slugs, when the caller asked for detail. Empty in a listing -- use ``plugins_ran``.
     plugins_executed: tuple[str, ...] = ()
+    #: How many packs ran. Sent as a number so a listing can be right without a query per row.
+    plugins_executed_count: int = 0
     findings_count: int = 0
     severity_counts: dict[str, int] = field(default_factory=dict)
     risk_score: float = 0.0
@@ -288,6 +294,16 @@ class ScanView:
         return self.state in TERMINAL_STATES
 
     @property
+    def plugins_ran(self) -> int:
+        """How many packs ran, from whichever source this view was built from.
+
+        A listing carries the count and no slugs; a detail response carries both. Reading
+        ``len(plugins_executed)`` everywhere is what made listings show PLUGINS 0, so the choice is
+        made once, here, rather than at each call site.
+        """
+        return self.plugins_executed_count or len(self.plugins_executed)
+
+    @property
     def started(self) -> datetime | None:
         return parse_timestamp(self.started_at)
 
@@ -298,12 +314,13 @@ class ScanView:
             id=as_str(payload, "id") or as_str(payload, "scan_id"),
             target=as_str(payload, "target"),
             name=as_str(payload, "name"),
-            profile=as_str(payload, "profile", "standard"),
+            profile=as_str(payload, "profile"),
             state=as_str(payload, "state", "queued").lower(),
             started_at=as_str(payload, "started_at"),
             finished_at=as_str(payload, "finished_at"),
             duration_s=as_float(payload, "duration_s"),
             plugins_executed=tuple(as_list(payload, "plugins_executed")),
+            plugins_executed_count=as_int(payload, "plugins_executed_count"),
             findings_count=as_int(payload, "findings_count"),
             severity_counts={str(k): as_int(raw_counts, str(k)) for k in raw_counts},
             risk_score=as_float(payload, "risk_score"),

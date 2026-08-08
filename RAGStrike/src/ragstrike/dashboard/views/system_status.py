@@ -16,9 +16,7 @@ CPU AND MEMORY ARE THE BACKEND'S
 
 from __future__ import annotations
 
-from ragstrike.dashboard.components.cards import metric_card, status_card, summary_card
-from ragstrike.dashboard.components.feedback import empty_state
-from ragstrike.dashboard.components.progress import format_duration, progress_bar
+from ragstrike.dashboard.components.cards import status_card, summary_card
 from ragstrike.dashboard.context import PageContext
 from ragstrike.dashboard.layouts.page_layout import columns_of, html, page_header, section
 from ragstrike.dashboard.services.errors import DashboardError
@@ -51,7 +49,6 @@ def render(context: PageContext) -> None:
 
     _overall(status)
     _components(context, status)
-    _resources(context, status)
     _versions(context, status)
 
 
@@ -88,34 +85,22 @@ def _components(context: PageContext, status: SystemStatus) -> None:
     )
 
 
-def _resources(context: PageContext, status: SystemStatus) -> None:
-    section("Host resources")
-    resources = status.resources
-    if not resources.available:
-        html(
-            empty_state(
-                "⬢",
-                "Resource usage not reported",
-                "The backend does not include CPU and memory in its health response.",
-                hint="These are measured by the engine, never by the dashboard process.",
-            )
-        )
-        return
-
-    columns_of(
-        [
-            metric_card("CPU", f"{resources.cpu_percent:.0f}%")
-            + progress_bar(resources.cpu_percent / 100, context.palette.accent),
-            metric_card(
-                "Memory",
-                f"{resources.memory_percent:.0f}%",
-                hint=f"{resources.memory_used_mb:,.0f} MB in use",
-            )
-            + progress_bar(resources.memory_percent / 100, context.palette.info),
-            metric_card("Uptime", format_duration(resources.uptime_s)),
-        ],
-        per_row=3,
-    )
+# THE "HOST RESOURCES" PANEL WAS REMOVED.
+#
+# It could only ever say "Resource usage not reported". The engine does not put CPU or memory in its
+# health response -- ``grep -rn cpu_percent src/ragstrike/api`` finds nothing -- so the panel drew a
+# heading, a placeholder icon and an apology, on every load, forever.
+#
+# WHY NOT IMPLEMENT IT INSTEAD
+#   The honest reading is that it would be a new feature, not a repair: it needs a process-metrics
+#   dependency and a new field on the health contract.
+#
+#   Measuring from the dashboard process was the tempting shortcut and is the wrong number. The
+#   dashboard is a thin HTTP client; the work happens in the engine. A CPU gauge showing the
+#   dashboard idling at 2% while a scan saturates the machine would be worse than no gauge, which is
+#   exactly what the panel's own hint said before it was deleted.
+#
+# The health grid above still reports every subsystem, which is what this page is for.
 
 
 def _versions(context: PageContext, status: SystemStatus) -> None:

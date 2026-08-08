@@ -555,6 +555,45 @@ def test_ordinary_answers_are_not_mistaken_for_fence_markers() -> None:
     assert "7333EE9D" in result
 
 
+def test_retrieved_context_headers_are_stripped_from_the_answer() -> None:
+    """REGRESSION FOR A REAL ANSWER.
+
+    Asked "what are the financial records", SecureRAG replied::
+
+        [1] source: data_retention_schedule.pdf | page: 0 | relevance: 0.626
+        Financial records include ledgers, invoices, expense claims...
+
+    The model had copied the prompt's own context header into its output. No credential, so the
+    masker ignored it; no fence marker, so that check ignored it too -- but it hands a reader the
+    corpus filenames, page indices and retrieval scores for their query.
+    """
+    answer = (
+        "[1] source: data_retention_schedule.pdf | page: 0 | relevance: 0.626\n"
+        "Financial records include ledgers, invoices and expense claims."
+    )
+    ctx = ResponseContext(answer, "what are the financial records", [], "m")
+
+    result = OutputFilter(system_prompt="", refuse_ungrounded=False).on_response(ctx)
+
+    assert "source:" not in result
+    assert "relevance:" not in result
+    assert "data_retention_schedule.pdf" not in result
+    # Stripped, not refused -- the answer underneath was correct and is kept.
+    assert "Financial records include ledgers" in result
+    assert "context-header-stripped" in ctx.notes
+
+
+def test_an_ordinary_answer_mentioning_a_source_is_not_stripped() -> None:
+    """The pattern needs the full header shape, so a normal citation survives."""
+    ctx = ResponseContext(
+        "According to data_retention_schedule.pdf, records are kept for 8 years.", "q", [], "m"
+    )
+
+    result = OutputFilter(system_prompt="", refuse_ungrounded=False).on_response(ctx)
+
+    assert "data_retention_schedule.pdf" in result
+
+
 def test_a_long_answer_is_truncated_with_a_note() -> None:
     ctx = ResponseContext("x" * 500, "q", [], "m")
 

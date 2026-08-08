@@ -35,12 +35,44 @@ def _write(html: str) -> None:
     st.markdown(html, unsafe_allow_html=True)
 
 
+def sync_streamlit_base(palette: Palette) -> None:
+    """Point Streamlit's OWN theme at the same palette this stylesheet uses.
+
+    WHY A STYLESHEET IS NOT ENOUGH
+        Streamlit compiles its base theme (``[theme] base`` in ``.streamlit/config.toml``) into the
+        styling of every native widget it renders -- buttons, toggles, inputs, expanders. Our
+        stylesheet reaches our own components and the containers, and it reached most of Streamlit's
+        too, but never all of them.
+
+        With the base pinned to ``dark``, selecting light produced a light page carrying dark
+        buttons and a dark toggle: the "half dark, half light" console. Fixing it by naming more
+        selectors is a losing game -- it is a guess per widget against a compiled stylesheet, and
+        each new Streamlit version moves the targets.
+
+        Setting the base option instead makes Streamlit repaint its own widgets, which is the only
+        approach that covers the ones nobody has enumerated yet.
+
+    The config pin stays: it decides the FIRST paint, before any Python has run, and without it a
+    dark session flashes white on load. This overrides it from the second render onward.
+    """
+    from streamlit import config as _config
+
+    wanted = "dark" if palette.dark else "light"
+    if _config.get_option("theme.base") == wanted:
+        return
+    _config.set_option("theme.base", wanted)
+    # Deliberately NO `st.rerun()` here. The toggle that changed the setting already reruns, and the
+    # frontend reads the theme on that rerun -- a second rerun from inside the layout made the two
+    # race, and the later one discarded the widget value the first was reacting to.
+
+
 def inject_theme(palette: Palette) -> None:
     """Write the stylesheet for the active theme.
 
     Called once per re-run, before anything else renders. Streamlit has no stylesheet lifecycle, so
     "inject on every run" is the only arrangement that survives a theme change mid-session.
     """
+    sync_streamlit_base(palette)
     _write(stylesheet(palette))
 
 

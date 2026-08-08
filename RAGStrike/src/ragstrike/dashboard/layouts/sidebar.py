@@ -29,21 +29,32 @@ def _connection_line(context: PageContext) -> str:
     if context.demo:
         return tag(
             "div",
-            escape("demo transport — sample data"),
-            class_="rs-metric__hint",
-            style=style({"color": palette.warn}),
+            tag(
+                "div",
+                escape("demo transport — sample data"),
+                class_="rs-metric__hint",
+                style=style({"color": palette.warn}),
+            ),
+            class_="rs-conn",
         )
     colour = palette.ok if context.backend_online else palette.danger
     label = "connected" if context.backend_online else "offline"
+    # Wrapped in `rs-conn` so the two lines are a flex column with a gap. Emitted as bare siblings
+    # they had no spacing of their own and landed on top of the tagline above them.
     return tag(
         "div",
-        tag("span", "●", style=style({"color": colour})) + escape(f" {label}"),
-        class_="rs-metric__hint",
-    ) + tag(
-        "div",
-        escape(context.services.transport.describe()),
-        class_="rs-metric__hint",
-        style=style({"word-break": "break-all"}),
+        tag(
+            "div",
+            tag("span", "●", style=style({"color": colour})) + escape(f" {label}"),
+            class_="rs-metric__hint",
+        )
+        + tag(
+            "div",
+            escape(context.services.transport.describe()),
+            class_="rs-metric__hint",
+            style=style({"word-break": "break-all"}),
+        ),
+        class_="rs-conn",
     )
 
 

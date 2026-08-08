@@ -101,6 +101,7 @@ PERSISTED_PREFS: dict[str, str] = {
     "top_k": "k",
     "show_prompt": "sp",
     "show_raw": "sr",
+    "show_retrieval": "sd",
 }
 
 #: The preference name. ``remember()``/``preference()`` store it at session key ``lab.theme``.
@@ -166,7 +167,7 @@ def preference(key: str, default: Any) -> Any:
 
 def _coerce(key: str, raw: str) -> Any:
     """URL values are strings; restore the type the widget expects."""
-    if key in {"show_prompt", "show_raw"}:
+    if key in {"show_prompt", "show_raw", "show_retrieval"}:
         return raw == "1"
     if key == "top_k":
         try:
@@ -354,6 +355,31 @@ code, pre, [data-testid="stCode"] {{
 # --------------------------------------------------------------------------------------------------
 
 
+def _sync_streamlit_base(palette: Palette) -> None:
+    """Point Streamlit's OWN theme at the palette this stylesheet uses.
+
+    WHY A STYLESHEET IS NOT ENOUGH
+        Streamlit compiles its base theme into every native widget it renders -- buttons, toggles,
+        inputs, expanders. This module styles the page and its own components, and it reached most
+        of Streamlit's too, but never all of them: selecting light produced a light page carrying a
+        dark toggle and dark buttons, the "half dark, half light" lab.
+
+        Naming more selectors is a losing game. It is one guess per widget against a compiled
+        stylesheet, and every Streamlit release moves the targets. Setting the base option makes
+        Streamlit repaint its own widgets, which is the only approach that also covers the ones
+        nobody has enumerated yet.
+    """
+    from streamlit import config as _config
+
+    wanted = "dark" if palette.name == "dark" else "light"
+    if _config.get_option("theme.base") == wanted:
+        return
+    _config.set_option("theme.base", wanted)
+    # Deliberately NO `st.rerun()` here. The toggle that changed the preference already reruns, and
+    # the frontend reads the theme on that rerun -- adding a second one from inside `apply()` made
+    # two reruns race, and the later one discarded the widget value the first was reacting to.
+
+
 def apply(settings: Any) -> Palette:
     """Load preferences, write the stylesheet, and return the active palette.
 
@@ -362,6 +388,7 @@ def apply(settings: Any) -> Palette:
     """
     load_preferences()
     palette = palette_for(str(preference("theme", "dark")))
+    _sync_streamlit_base(palette)
     st.markdown(_css(palette), unsafe_allow_html=True)
     return palette
 

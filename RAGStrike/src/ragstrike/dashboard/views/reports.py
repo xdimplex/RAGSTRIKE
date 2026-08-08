@@ -19,6 +19,7 @@ from __future__ import annotations
 from ragstrike.dashboard.components.cards import report_card
 from ragstrike.dashboard.components.controls import confirmation_dialog, facet_options, filter_panel
 from ragstrike.dashboard.components.feedback import empty_state, render_exception
+from ragstrike.dashboard.components.html import escape, tag
 from ragstrike.dashboard.context import PageContext
 from ragstrike.dashboard.layouts.page_layout import html, page_header, section
 from ragstrike.dashboard.services.errors import DashboardError
@@ -60,9 +61,13 @@ def render(context: PageContext) -> None:
         html(empty_state("▤", "No reports match", "Clear the filters to see them all."))
         return
 
-    section(f"Reports ({len(ordered)})")
-    render_table(report_rows(ordered))
+    # Same order as Scan History: filter -> details -> the full list LAST. The most recent report's
+    # detail is what an operator came for; the back catalogue is reference material and belongs
+    # under it rather than pushing it below the fold.
     _detail(context, ordered)
+
+    section(f"Report history ({len(ordered)})")
+    render_table(report_rows(ordered))
 
 
 def _toolbar(context: PageContext, reports: list[ReportView]) -> list[ReportView]:
@@ -108,27 +113,53 @@ def _detail(context: PageContext, reports: list[ReportView]) -> None:
     context.state.selected_report = str(chosen_id)
     report = next(r for r in reports if r.id == chosen_id)
 
-    html(report_card(context.palette, report))
+    # Card and actions in one bordered container: as siblings, the card's border rendered across
+    # "Open report" and "Delete". Same defect and same fix as the Plugins and Scan History pages.
+    with st.container(border=True):
+        html(report_card(context.palette, report, framed=False))
 
-    actions = st.columns(3)
-    with actions[0]:
-        _open(context, report)
-    with actions[1]:
-        _export(context, report)
-    with actions[2]:
-        if confirmation_dialog(
-            key=f"rs.rep.delete.{report.id}",
-            action="Delete",
-            subject=report.id,
-            state=context.state,
-        ):
-            _delete(context, report)
+        actions = st.columns(3)
+        with actions[0]:
+            _open(context, report)
+        with actions[1]:
+            _export(context, report)
+        with actions[2]:
+            if confirmation_dialog(
+                key=f"rs.rep.delete.{report.id}",
+                action="Delete",
+                subject=report.id,
+                state=context.state,
+            ):
+                _delete(context, report)
 
 
 def _open(context: PageContext, report: ReportView) -> None:
     import streamlit as st
 
-    if not st.button("Open report", key=f"rs.rep.open.{report.id}", width="stretch"):
+    # A real link, opening a real tab, before the in-page preview.
+    #
+    # "Open report" used to render into a 720px sandboxed iframe inside the page: safe, and it read
+    # as a cramped thumbnail of a document rather than the document. A report is the deliverable of
+    # this whole tool, and a deliverable that can only be viewed through a letterbox looks unfinished.
+    #
+    # The link points at the API, not at the dashboard, and that is deliberate. A report is built
+    # from target responses -- attacker-influenced text -- so it must never be spliced into the
+    # dashboard's own origin. The API is a separate origin with no cookie or session to steal, so a
+    # script inside a report has nothing to reach.
+    inline_url = context.services.reports.inline_url(report.scan_id, report.fmt)
+    if inline_url:
+        html(
+            tag(
+                "a",
+                escape(f"Open the full {report.fmt.upper()} report in a new tab  ↗"),
+                href=inline_url,
+                target="_blank",
+                rel="noopener noreferrer",
+                class_="rs-openlink",
+            )
+        )
+
+    if not st.button("Preview here", key=f"rs.rep.open.{report.id}", width="stretch"):
         return
     try:
         rendered = context.services.reports.open_report(report.scan_id, report.id, report.fmt)

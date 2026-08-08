@@ -17,6 +17,7 @@ rewriting the record of what actually happened.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 import json
 import logging
@@ -122,6 +123,37 @@ class FindingRepository:
             for row in await cursor.fetchall():
                 counts[str(row["status"])] = int(row["n"])
         return counts
+
+
+    async def summarise(self, scan_ids: Sequence[str]) -> dict[str, tuple[int, float]]:
+        """``{scan_id: (finding_count, worst_risk)}`` for many scans in ONE query.
+
+        WHY THIS EXISTS
+            The scan listing used to pass no findings at all and derive its columns from an empty
+            list. Every row therefore rendered ``0 findings``, ``risk 0.0`` and -- because the
+            grader reads "no findings" as "nothing bad was found" -- **grade A**, while the outcome
+            column read ``FAIL`` from the persisted counters. A security console asserting grade A
+            on a target it had just broken into is worse than one that says nothing.
+
+            The obvious fix, loading findings per row, is a query per scan. This is the same
+            information in one round trip, so the listing can be honest without being slow.
+
+        Returns only scans that HAVE findings. A caller must treat a missing id as "none recorded",
+        which is exactly what it means.
+        """
+        ids = list(scan_ids)
+        if not ids:
+            return {}
+        placeholders = ",".join("?" for _ in ids)
+        async with self.database.connect() as conn:
+            cursor = await conn.execute(
+                f"SELECT scan_id, COUNT(*) AS n, MAX(risk_score) AS worst "  # noqa: S608 - ids are
+                f"FROM findings WHERE scan_id IN ({placeholders}) "  # bound parameters, not text
+                f"GROUP BY scan_id",
+                ids,
+            )
+            rows = await cursor.fetchall()
+        return {str(r["scan_id"]): (int(r["n"]), float(r["worst"] or 0.0)) for r in rows}
 
 
 def _to_finding(row: Any) -> Finding:

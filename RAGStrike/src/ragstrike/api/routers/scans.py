@@ -58,18 +58,39 @@ def _to_out(
     *,
     executed: list[str] | None = None,
     findings: list[Any] | None = None,
+    summary: tuple[int, float] | None = None,
 ) -> ScanOut:
     """Shape one scan for the wire.
 
-    *executed* and *findings* are optional because the list endpoint would otherwise run two extra
-    queries per row. A listing shows counts; the detail endpoint supplies both and gets the full
-    picture.
+    THREE WAYS TO SUPPLY THE FINDING NUMBERS, AND WHY
+        * ``findings`` -- the detail endpoint has the rows anyway, so it passes them and gets
+          per-severity counts as well.
+        * ``summary`` -- ``(count, worst_risk)`` from one batched query, for the listing. It cannot
+          break severity down, but it gets the count, the risk and therefore the GRADE right.
+        * neither -- genuinely unknown. Renders as ungraded rather than as clean.
+
+        The third case used to be the listing's behaviour, and it was silently wrong: an empty
+        findings list is indistinguishable from "no findings were recorded", so every row showed
+        ``0 findings / risk 0.0 / grade A`` beside an outcome of ``FAIL``. Passing "I did not look"
+        and "I looked and found nothing" as the same value is what made that possible, so they are
+        now different arguments.
     """
     rows = findings or []
     severity: dict[str, int] = {}
     for finding in rows:
         key = finding.severity.value
         severity[key] = severity.get(key, 0) + 1
+
+    if findings is not None:
+        count = len(rows)
+        worst = round(max((f.risk_score for f in rows), default=0.0), 2)
+        measured = True
+    elif summary is not None:
+        count, worst_raw = summary
+        worst = round(worst_raw, 2)
+        measured = True
+    else:
+        count, worst, measured = 0, 0.0, False
 
     duration = 0.0
     if session.finished_at:
@@ -79,21 +100,26 @@ def _to_out(
         scan_id=session.id,
         id=session.id,
         target=session.target_name,
+        # `display_name` rather than the raw label: a scan started without one still needs
+        # something readable in a list, and "scan-47cce83d" beats 32 characters of hex.
+        name=session.display_name,
+        profile=session.profile,
         state=session.state.value,
         outcome=_outcome(session),
         started_at=session.started_at,
         finished_at=session.finished_at,
         duration_s=round(duration, 2),
         plugins_executed=executed if executed is not None else [],
+        plugins_executed_count=session.plugins_executed,
         plugins_total=session.plugins_total,
         plugins_passed=session.plugins_passed,
         plugins_failed=session.plugins_failed,
         plugins_errored=session.plugins_errored,
         plugins_skipped=session.plugins_skipped,
-        findings_count=len(rows),
+        findings_count=count,
         severity_counts=severity,
-        risk_score=round(max((f.risk_score for f in rows), default=0.0), 2),
-        grade=_grade(rows, session),
+        risk_score=worst,
+        grade=_grade(count, worst, session, measured=measured),
         coverage=round(session.coverage, 4),
         error=session.error,
     )
@@ -110,15 +136,26 @@ def _outcome(session: ScanSession) -> str:
     return "INCONCLUSIVE"
 
 
-def _grade(findings: list[Any], session: ScanSession) -> str:
+def _grade(count: int, worst: float, session: ScanSession, *, measured: bool) -> str:
     """A letter for the risk, or ``?`` when there is nothing to grade.
 
-    ``?`` is not decoration. A scan with no findings and a scan that was never analysed both have a
-    risk of zero, and grading the second one "A" would assert something nobody measured.
+    ``?`` is not decoration. A scan with no findings and a scan whose findings were never loaded
+    both have a risk of zero, and grading the second one "A" asserts something nobody measured --
+    which is precisely what the listing did, on rows whose own outcome column said ``FAIL``.
+
+    ``measured`` is what separates the two. It is a parameter rather than an inference because the
+    caller is the only thing that knows whether it looked.
     """
-    if not findings:
-        return "?" if not session.plugins_executed else "A"
-    worst = max(f.risk_score for f in findings)
+    if not measured or not session.plugins_executed:
+        return "?"
+    if count == 0:
+        # A pack failed, yet no finding was recorded for it. The two disagree, so the honest grade
+        # is "I cannot tell" -- not "A". Reaching here means the analyzer did not run, or its
+        # findings were not stored, and an A would report a clean bill of health on the strength of
+        # missing data. This is the shape the whole listing used to have.
+        if session.plugins_failed or session.plugins_errored:
+            return "?"
+        return "A"
     for threshold, letter in ((9.0, "F"), (7.0, "D"), (5.0, "C"), (3.0, "B")):
         if worst >= threshold:
             return letter
@@ -130,7 +167,12 @@ async def list_scans(
     service: Service,
     limit: Annotated[int, Query(ge=1, le=_MAX_LIMIT)] = 20,
 ) -> ScanList:
-    return ScanList(scans=[_to_out(s) for s in await service.recent(limit)])
+    sessions = await service.recent(limit)
+    # One extra query for the whole page, not one per row -- see FindingRepository.summarise.
+    summaries = await service.findings.summarise([s.id for s in sessions])
+    return ScanList(
+        scans=[_to_out(s, summary=summaries.get(s.id, (0, 0.0))) for s in sessions]
+    )
 
 
 @router.post(
@@ -153,6 +195,9 @@ async def start_scan(request: ScanRequest, service: Service) -> ScanAccepted:
         profile_name=request.profile,
         plugins=request.plugins,
         categories=request.categories,
+        # The dashboard has always sent this. It was accepted by the schema and then dropped here,
+        # so every scan was stored nameless and listed by raw hex id.
+        name=request.name,
     )
     # Both keys carry the same value. See ScanAccepted -- the dashboard reads `id`, the rest of this
     # API says `scan_id`, and emitting only one breaks whichever client was not consulted.

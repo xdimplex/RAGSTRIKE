@@ -240,3 +240,25 @@ PHASE11_INDICES = [
     "CREATE INDEX IF NOT EXISTS idx_reports_scan ON reports (scan_id, generated_at DESC)",
     "CREATE INDEX IF NOT EXISTS idx_report_exports_report ON report_exports (report_id)",
 ]
+
+
+# --------------------------------------------------------------------------------------------------
+# Migration 5 -- scan identity
+#
+# WHY THESE TWO COLUMNS
+#   `ScanOut` has always declared `name` and `profile`, and the dashboard has always rendered them.
+#   Neither was ever stored, so every scan listed with a blank PROFILE column and was identifiable
+#   only by a raw hex id like `47cce83d3e9f4512a327b7409e2f4859`. With twenty scans in the table,
+#   picking out "the standard run against secure-rag from this morning" meant opening them one by
+#   one.
+#
+#   `profile` also matters for reading results: a FAIL at 22% coverage and a FAIL at 100% are very
+#   different claims, and the profile is what tells them apart at a glance.
+#
+# ALTER TABLE, not a redefinition. Migrations are forward-only and immutable once released, so the
+# original CREATE stays exactly as it shipped and the change is expressed as its own step.
+# --------------------------------------------------------------------------------------------------
+PHASE17_ALTERS = [
+    "ALTER TABLE scan_sessions ADD COLUMN name TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE scan_sessions ADD COLUMN profile TEXT NOT NULL DEFAULT ''",
+]

@@ -20,10 +20,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ragstrike.dashboard.components.feedback import empty_state
 from ragstrike.dashboard.config import REPORT_FORMATS, ReportPreferences
 from ragstrike.dashboard.context import PageContext
-from ragstrike.dashboard.layouts.page_layout import html, page_header, section
+from ragstrike.dashboard.layouts.page_layout import page_header, section
 from ragstrike.dashboard.services.settings_service import (
     OPTIONS,
     REPORT_OPTIONS,
@@ -36,7 +35,6 @@ def render(context: PageContext) -> None:
 
     _preferences(context)
     _report_preferences(context)
-    _effective(context)
 
 
 def _widget(option: SettingsOption, current: Any) -> Any:
@@ -115,25 +113,17 @@ def _report_preferences(context: PageContext) -> None:
         st.rerun()
 
 
-def _effective(context: PageContext) -> None:
-    import streamlit as st
-
-    section("Effective configuration")
-    st.caption("Read-only. Sensitive values are redacted before they reach this page.")
-
-    dashboard_config = context.services.settings.effective_config(context.config)
-    st.json(dashboard_config, expanded=False)
-
-    engine_config = context.services.settings.engine_config()
-    section("Engine configuration")
-    if engine_config:
-        st.json(engine_config, expanded=False)
-        return
-    html(
-        empty_state(
-            "⚙",
-            "Not exposed by the backend",
-            "The engine does not serve its effective configuration over the API yet.",
-            hint="It is readable in configs/config.yaml on the machine running the engine.",
-        )
-    )
+# THE "EFFECTIVE CONFIGURATION" PANEL WAS REMOVED, NOT REPAIRED.
+#
+# It rendered the dashboard's settings as raw JSON and then tried to fetch the engine's
+# configuration from ``GET /config``. That route does not exist, so the panel ended with a red
+# "Request rejected -- Not Found" on a page whose whole purpose is to look trustworthy.
+#
+# Repairing it meant implementing the route, and that is what settled the question: the engine's
+# effective configuration is its safety policy, its allowed-host list, its model settings and its
+# filesystem paths. Serving all of that from an unauthenticated loopback API buys nothing an
+# operator cannot already get by opening ``configs/config.yaml`` on the machine, and this is a
+# security tool -- the reasonable default is not to publish its own posture over HTTP.
+#
+# The editable preferences above cover everything a dashboard user actually needs. A JSON dump of
+# the same values underneath them was duplication rather than information.

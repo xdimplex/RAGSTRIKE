@@ -555,11 +555,25 @@ def test_changing_the_theme_takes_effect_in_the_same_session() -> None:
     assert LIGHT.background in str(app.markdown[0].value)
 
 
-def test_settings_shows_the_effective_configuration_read_only() -> None:
+def test_settings_does_not_dump_configuration_or_show_a_backend_error() -> None:
+    """The "Effective configuration" panel was removed rather than repaired.
+
+    It printed the dashboard settings as raw JSON and then called ``GET /config``, a route that does
+    not exist -- so the page ended in a red "Request rejected -- Not Found" on the one screen whose
+    job is to look trustworthy. Implementing the route would have published the engine's safety
+    policy, allowed hosts and paths over an unauthenticated API, which is the wrong trade for a
+    security tool when the same file is readable on the host.
+
+    This asserts both halves: no config dump, and no error banner left behind by removing it.
+    """
     app = run("settings")
 
-    assert app.json
-    assert "Read-only" in body(app)
+    assert not app.json, "settings should not dump configuration as raw JSON"
+    rendered = body(app)
+    assert "Request rejected" not in rendered
+    assert "Not Found" not in rendered
+    # The editable preferences are what the page is for, and they must still be there.
+    assert "rs.set.apply" in {widget.key for widget in app.button}
 
 
 def test_settings_never_renders_a_credential() -> None:
@@ -598,12 +612,23 @@ def test_system_status_shows_all_eight_subsystems() -> None:
         assert name in rendered, f"System Status is missing {name}"
 
 
-def test_system_status_shows_host_resources_and_uptime() -> None:
+def test_system_status_does_not_promise_host_resources() -> None:
+    """The "Host resources" panel was removed, and this test used to be the reason it survived.
+
+    It asserted CPU, Memory and Uptime were rendered -- and they were, because the DEMO transport
+    fabricates them. Against the real backend the engine sends no CPU or memory at all, so the panel
+    drew "Resource usage not reported" on every load.
+
+    A panel that works only on invented data is not a feature, and this test was green throughout.
+    Measuring in the dashboard process was the tempting fix and the wrong number: the dashboard is a
+    thin HTTP client, so it would have shown 2% while a scan saturated the machine.
+    """
     rendered = markup(run("system_status"))
 
-    assert "CPU" in rendered
-    assert "Memory" in rendered
-    assert "Uptime" in rendered
+    assert "Host resources" not in rendered
+    assert "Resource usage not reported" not in rendered
+    # The page still has to do its actual job.
+    assert "Subsystem" in rendered or "healthy" in rendered.lower()
 
 
 def test_a_degraded_subsystem_is_reported_as_degraded() -> None:

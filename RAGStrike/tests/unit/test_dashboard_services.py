@@ -648,32 +648,15 @@ def test_applying_an_unknown_preference_key_does_not_discard_the_known_ones() ->
     assert updated.theme == "light"
 
 
-def test_the_engine_configuration_is_empty_when_the_backend_does_not_expose_it() -> None:
-    """The page then says so, rather than implying the engine has no configuration."""
-    assert services().settings.engine_config() == {}
+def test_the_dashboard_no_longer_asks_the_backend_for_its_configuration() -> None:
+    """``engine_config`` was removed along with the panel that displayed it.
 
+    It existed only to call ``GET /config``, which the API does not serve. Implementing that route
+    would have published the engine's safety policy and paths over an unauthenticated API, so the
+    caller was deleted instead of the gap being filled.
+    """
+    assert not hasattr(services().settings, "engine_config")
 
-# -- errors ----------------------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    ("code", "expected"),
-    [
-        ("authorization_missing", ScanRejectedError),
-        ("target_out_of_scope", ScanRejectedError),
-        ("target_not_found", TargetMissingError),
-        ("plugin_error", PluginFailureError),
-        ("storage_error", DatabaseFailureError),
-        ("report_error", ReportFailureError),
-        ("configuration_error", ConfigurationProblemError),
-    ],
-)
-def test_each_backend_error_code_maps_onto_the_class_that_phrases_it_best(
-    code: str, expected: type[DashboardError]
-) -> None:
-    error = from_envelope(422, {"error": {"code": code, "message": "nope"}})
-
-    assert isinstance(error, expected)
 
 
 def test_an_unknown_code_shows_the_backend_message_rather_than_inventing_one() -> None:

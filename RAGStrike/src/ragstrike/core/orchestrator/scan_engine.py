@@ -138,6 +138,7 @@ class ScanEngine:
         adapter: TargetAdapter,
         profile: ProfileSelector | None = None,
         scan_id: str | None = None,
+        name: str = "",
         on_plan: PlanCallback | None = None,
         on_result: ProgressCallback | None = None,
     ) -> ScanOutcome:
@@ -149,6 +150,10 @@ class ScanEngine:
         *scan_id* lets the caller choose the identifier. The API needs this: ``POST /scans`` must
         return an id **before** the engine has created its session, and an id the client cannot then
         query is worse than no id at all. Omitted, the engine mints one as before.
+
+        *name* is an operator label stored with the session. Without one a scan is identifiable only
+        by a 32-character hex id, which is unreadable at a glance and identical in shape to every
+        other scan in the list.
 
         *on_plan* fires once, with the total number of plugins, as soon as planning finishes. Without
         it a progress endpoint has a numerator and no denominator for the whole scan, and reports 0%
@@ -165,6 +170,17 @@ class ScanEngine:
             id=scan_id or ScanSession.new_id(),
             target_id=stored_target.id,
             target_name=stored_target.name,
+            name=name,
+            # Recorded so a listing can distinguish a FAIL at 22% coverage from a FAIL at 100%.
+            #
+            # `id` first, `name` as a fallback. The CLI hands this a `ScanProfile` whose `name` is
+            # the display label ("Smoke test") while its `id` is what the operator typed
+            # (`--profile smoke`) and what `configs/profiles/` calls the file. Reading `name` first
+            # stored the label, so a column read "Smoke test" beside a command that says `smoke`.
+            #
+            # Resolved HERE rather than in each caller because both the CLI and the API reach the
+            # engine by different paths, and fixing one of them is how they drift apart.
+            profile=getattr(profile, "id", "") or getattr(profile, "name", "") or "",
             state=ScanState.QUEUED,
             engine_version=self.engine_version,
         )

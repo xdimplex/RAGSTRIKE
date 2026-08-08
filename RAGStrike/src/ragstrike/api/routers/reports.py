@@ -15,7 +15,7 @@ import base64
 from pathlib import Path
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 
 from ragstrike import __version__
@@ -233,12 +233,31 @@ async def delete_report(report_id: str, service: Service) -> None:
     response_class=FileResponse,
     summary="Download a generated report",
 )
-async def download_report(scan_id: str, fmt: str, service: Service) -> FileResponse:
+async def download_report(
+    scan_id: str,
+    fmt: str,
+    service: Service,
+    inline: Annotated[bool, Query()] = False,
+) -> FileResponse:
     """Serve a previously generated report file.
 
     Both path segments are used to build a filesystem path, so both are constrained: ``fmt`` must be
     a known format, and the resolved path must sit inside the reports directory. ``../`` in a URL
     reaching a file read is the oldest bug there is, and this is a security tool.
+
+    ``inline=true`` drops the ``Content-Disposition: attachment`` header so a browser renders the
+    report in a tab instead of downloading it. The dashboard links to this so "Open report" opens a
+    real, full-window page -- it used to render into a 720px sandboxed frame inside the page, which
+    is safe but reads as a cramped preview of a document rather than the document.
+
+    WHY SERVING IT INLINE IS ACCEPTABLE HERE
+        A report is built from target responses, which is to say from text an attacker influenced.
+        Splicing that into the dashboard's DOM would make the report an XSS vector against the tool
+        that produced it -- which is why the in-page preview is sandboxed and stays that way.
+
+        This route is a different origin from the dashboard (the API is on its own port), so a script
+        in a report cannot reach the dashboard's DOM or storage. The API holds no cookie or session
+        for it to steal either: authorization here is a per-target record, not a browser credential.
     """
     reporting, _, _ = build_reporting()
     if fmt not in reporting.engine.formats():
@@ -257,7 +276,21 @@ async def download_report(scan_id: str, fmt: str, service: Service) -> FileRespo
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"No {fmt} report for scan {scan_id!r}. Generate one first.",
         )
-    return FileResponse(_within(matches[0], root), filename=matches[0].name)
+    path = _within(matches[0], root)
+    if inline:
+        # No `filename=`: that is what sets Content-Disposition: attachment. Without it the browser
+        # renders the file, which is the whole point of the inline mode.
+        return FileResponse(path, media_type=_INLINE_MEDIA.get(fmt, "text/plain"))
+    return FileResponse(path, filename=matches[0].name)
+
+
+#: Media types for inline display. Only formats a browser can render usefully appear here; anything
+#: else falls back to text/plain rather than inviting the browser to guess.
+_INLINE_MEDIA = {
+    "html": "text/html",
+    "markdown": "text/plain; charset=utf-8",
+    "json": "application/json",
+}
 
 
 def _within(path: Path, root: Path) -> Path:

@@ -118,18 +118,32 @@ def _cards(context: PageContext, plugins: list[PluginView]) -> None:
 
     section("Detail")
     for plugin in plugins:
-        html(plugin_card(context.palette, plugin))
-        actions = st.columns(4)
-        if plugin.enabled:
-            if actions[0].button("Disable", key=f"rs.plg.off.{plugin.slug}"):
-                _toggle(context, plugin, enable=False)
-        elif actions[0].button("Enable", key=f"rs.plg.on.{plugin.slug}", type="primary"):
-            _toggle(context, plugin, enable=True)
+        # The card and its buttons live in ONE bordered container.
+        #
+        # They used to be siblings: an HTML card with its own border and margin, followed by a bare
+        # `st.columns` row. Nothing tied the two together, so Disable / Validate / Metadata rendered
+        # across the card's bottom border -- the buttons belonged to the card visually and to the
+        # page structurally, and the layout followed the structure.
+        #
+        # Inside a container they are one flex column, so the border is drawn around the whole group
+        # and the gap between the card body and the button row is spacing rather than a collision.
+        with st.container(border=True):
+            html(plugin_card(context.palette, plugin, framed=False))
+            actions = st.columns([1, 1, 1, 3])
+            if plugin.enabled:
+                if actions[0].button(
+                    "Disable", key=f"rs.plg.off.{plugin.slug}", width="stretch"
+                ):
+                    _toggle(context, plugin, enable=False)
+            elif actions[0].button(
+                "Enable", key=f"rs.plg.on.{plugin.slug}", type="primary", width="stretch"
+            ):
+                _toggle(context, plugin, enable=True)
 
-        if actions[1].button("Validate", key=f"rs.plg.val.{plugin.slug}"):
-            _validate(context, plugin)
-        with actions[2]:
-            _metadata(context, plugin)
+            if actions[1].button("Validate", key=f"rs.plg.val.{plugin.slug}", width="stretch"):
+                _validate(context, plugin)
+            with actions[2]:
+                _metadata(context, plugin)
 
 
 def _metadata(context: PageContext, plugin: PluginView) -> None:

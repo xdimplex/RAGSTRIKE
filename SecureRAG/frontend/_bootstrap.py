@@ -7,6 +7,9 @@ It also loads settings once and exposes the API base URL, so no page has to work
 backend lives.
 """
 
+# ruff: noqa: I001 - the import order here is deliberate: everything below the sys.path
+# fix must stay below it, and sorting the block would move it above.
+
 from __future__ import annotations
 
 import sys

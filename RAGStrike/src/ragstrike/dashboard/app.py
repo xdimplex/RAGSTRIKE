@@ -102,6 +102,8 @@ def configure_page() -> None:
 
 def main() -> None:
     """One Streamlit re-run, start to finish."""
+    import streamlit as st
+
     # URL first: session state is discarded on a browser refresh, so anything the operator chose --
     # theme, page, target, search -- has to be seeded from the query string before anything reads
     # it. Without this, F5 returned the operator to the default theme and the Dashboard page.
@@ -127,6 +129,16 @@ def main() -> None:
     selected = render_sidebar(context)
     if selected != state.current_page:
         state.current_page = selected
+        # Re-run before drawing the body.
+        #
+        # The sidebar renders top to bottom, so the buttons ABOVE the one just clicked were already
+        # drawn -- with the old page still marked active. Clicking "Scan History" therefore left
+        # "Reports" highlighted while the Scan History body rendered below it, and the same lag hit
+        # every route whose predecessor was the previous selection.
+        #
+        # Re-running here redraws the sidebar with the new selection before the body appears, which
+        # costs one extra pass and makes the highlight always agree with the page on screen.
+        st.rerun()
 
     render_banners(context)
 

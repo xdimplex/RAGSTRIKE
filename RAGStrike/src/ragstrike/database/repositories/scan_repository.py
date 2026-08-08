@@ -22,10 +22,10 @@ log = logging.getLogger(__name__)
 
 _INSERT_SCAN = """
 INSERT INTO scan_sessions (
-    id, target_id, target_name, state, engine_version, plugin_inventory, config_snapshot,
-    started_at, finished_at, plugins_total, plugins_executed, plugins_passed, plugins_failed,
-    plugins_errored, plugins_skipped, error
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    id, target_id, target_name, name, profile, state, engine_version, plugin_inventory,
+    config_snapshot, started_at, finished_at, plugins_total, plugins_executed, plugins_passed,
+    plugins_failed, plugins_errored, plugins_skipped, error
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 """
 
 _UPDATE_SCAN = """
@@ -57,6 +57,8 @@ class ScanRepository:
                     scan.id,
                     scan.target_id,
                     scan.target_name,
+                    scan.name,
+                    scan.profile,
                     scan.state.value,
                     scan.engine_version,
                     json.dumps(scan.plugin_inventory),
@@ -156,6 +158,8 @@ def _scan_from_row(row: Any) -> ScanSession:
         id=row["id"],
         target_id=row["target_id"],
         target_name=row["target_name"],
+        name=_optional(row, "name"),
+        profile=_optional(row, "profile"),
         state=ScanState(row["state"]),
         engine_version=row["engine_version"],
         plugin_inventory=json.loads(row["plugin_inventory"] or "{}"),
@@ -169,6 +173,19 @@ def _scan_from_row(row: Any) -> ScanSession:
         plugins_skipped=row["plugins_skipped"],
         error=row["error"],
     )
+
+
+def _optional(row: Any, column: str) -> str:
+    """Read a column that may not exist yet, as a string.
+
+    Rows written before migration 5 have no ``name`` or ``profile``, and a database that predates a
+    migration should read as "empty" rather than raise.
+
+    ``row.keys()`` is deliberate and must not be simplified to ``column in row``: a ``sqlite3.Row``
+    iterates its VALUES, so the shorter form asks whether any cell equals "name" -- a different
+    question with an occasionally identical answer, which is the worst kind of bug.
+    """
+    return (row[column] if column in row.keys() else "") or ""  # noqa: SIM118 - see above
 
 
 def _result_from_row(row: Any) -> PluginResult:

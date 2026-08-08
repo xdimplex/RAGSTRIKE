@@ -29,14 +29,16 @@ def scan_rows(scans: Sequence[ScanView]) -> list[dict[str, Any]]:
     """Scan history rows."""
     return [
         {
-            "Scan": scan.id,
+            # The label, not the id. A column of 32-character hex is unreadable and identical in
+            # shape row to row; the id is still on the detail panel for correlating with a report.
+            "Scan": scan.name or scan.id[:8],
             "Target": scan.target,
-            "Profile": scan.profile,
+            "Profile": scan.profile or "--",
             "Result": scan.outcome or scan.state.upper(),
             "Grade": scan.grade or "--",
             "Risk": round(scan.risk_score, 1),
             "Findings": scan.findings_count,
-            "Plugins": len(scan.plugins_executed),
+            "Plugins": scan.plugins_ran,
             "Duration": format_duration(scan.duration_s) if scan.duration_s else "--",
             "Coverage": f"{scan.coverage * 100:.0f}%" if scan.coverage else "--",
             "Started": scan.started_at,

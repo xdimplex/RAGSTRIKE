@@ -21,6 +21,7 @@ from ragstrike.database.models.tables import (
     PHASE10_TABLES,
     PHASE11_INDICES,
     PHASE11_TABLES,
+    PHASE17_ALTERS,
     SCHEMA_MIGRATIONS,
 )
 
@@ -35,6 +36,7 @@ MIGRATIONS: list[tuple[int, str, list[str]]] = [
     (2, "plugin_tables", [*PHASE4_TABLES, *PHASE4_INDICES]),
     (3, "analyzer_findings", [*PHASE10_TABLES, *PHASE10_INDICES]),
     (4, "reports", [*PHASE11_TABLES, *PHASE11_INDICES]),
+    (5, "scan_identity", [*PHASE17_ALTERS]),
 ]
 
 

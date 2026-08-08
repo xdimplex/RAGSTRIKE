@@ -48,6 +48,9 @@ In **VulnerableRAG → Chat**, ask something the document answers:
 
 > *"What severity is a confirmed compromise of production, and who gets notified?"*
 
+Tick **Show retrieval details** in the sidebar first — it is off by default, so an ordinary user
+sees a clean answer and only an operator asks for the internals.
+
 When the answer arrives, expand **Retrieved context**. This is the important moment: the audience
 sees *which passages* were selected, from which document, with what relevance. The answer is
 grounded in those passages and nothing else.

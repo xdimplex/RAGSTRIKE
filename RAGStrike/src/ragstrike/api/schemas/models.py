@@ -188,6 +188,13 @@ class ScanOut(BaseModel):
     #: The slugs that actually ran. A list, because the client renders its length *and* its
     #: contents; an integer gives it neither.
     plugins_executed: list[str] = Field(default_factory=list)
+    #: How many packs ran, as a number rather than a list length.
+    #:
+    #: The listing cannot fill ``plugins_executed`` without a query per row, so it used to send an
+    #: empty list -- and the dashboard, which renders ``len(plugins_executed)``, showed **PLUGINS 0**
+    #: for every scan, including a 23-minute full-coverage run. The count is on the session already;
+    #: only the wire format had no place to put it.
+    plugins_executed_count: int = 0
     plugins_total: int = 0
     plugins_passed: int = 0
     plugins_failed: int = 0

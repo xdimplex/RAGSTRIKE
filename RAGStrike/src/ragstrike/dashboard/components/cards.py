@@ -91,8 +91,12 @@ def metric_card(
     return tag("div", tag("div", join(parts), class_="rs-metric"), class_="rs-card")
 
 
-def plugin_card(palette: Palette, plugin: PluginView) -> str:
+def plugin_card(palette: Palette, plugin: PluginView, *, framed: bool = True) -> str:
     """An installed plugin, active or refused.
+
+    ``framed=False`` drops this card's own border and margin, for when the caller has already put it
+    inside a bordered container. Two nested borders read as a bug, and the outer one is what keeps
+    the plugin's action buttons visually attached to the plugin they act on.
 
     A refused plugin shows its reason in the body. Hiding the reason and showing only "rejected"
     would leave the operator with no way to tell a permission refusal from a version mismatch --
@@ -139,10 +143,11 @@ def plugin_card(palette: Palette, plugin: PluginView) -> str:
         class_="rs-card__foot",
     )
     accent = palette.ok if plugin.healthy and plugin.enabled else palette.neutral
+    classes = "rs-card rs-card--accented" if framed else "rs-card rs-card--bare"
     return tag(
         "div",
         head + body + foot,
-        class_="rs-card rs-card--accented",
+        class_=classes,
         style=style({"border-left-color": accent}),
     )
 
@@ -198,8 +203,11 @@ def target_card(palette: Palette, target: TargetView) -> str:
     )
 
 
-def report_card(palette: Palette, report: ReportView) -> str:
-    """A generated report."""
+def report_card(palette: Palette, report: ReportView, *, framed: bool = True) -> str:
+    """A generated report.
+
+    ``framed=False`` for a card inside a bordered container -- see ``summary_card``.
+    """
     head = tag(
         "div",
         tag("span", escape(report.id), class_="rs-card__title")
@@ -230,15 +238,27 @@ def report_card(palette: Palette, report: ReportView) -> str:
         if report.status
         else ""
     )
-    return tag("div", head + detail + foot, class_="rs-card")
+    return tag(
+        "div",
+        head + detail + foot,
+        class_="rs-card" if framed else "rs-card rs-card--bare",
+    )
 
 
-def summary_card(title: str, rows: Mapping[str, str], *, footer: str = "") -> str:
-    """A generic titled key/value panel, used where a bespoke card would be over-specified."""
+def summary_card(
+    title: str, rows: Mapping[str, str], *, footer: str = "", framed: bool = True
+) -> str:
+    """A generic titled key/value panel, used where a bespoke card would be over-specified.
+
+    ``framed=False`` drops the border and margin, for a card already inside a bordered container.
+    Nested borders read as a rendering bug, and the card's own margin was what pushed its visual
+    edge past the space the layout had reserved -- which is how the summary came to overlap the
+    action buttons beneath it.
+    """
     body = key_values(list(rows.items()))
     foot = tag("div", escape(footer), class_="rs-card__foot") if footer else ""
     return tag(
         "div",
         tag("div", escape(title), class_="rs-card__title") + body + foot,
-        class_="rs-card",
+        class_="rs-card" if framed else "rs-card rs-card--bare",
     )

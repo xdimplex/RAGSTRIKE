@@ -29,7 +29,6 @@ from ragstrike.dashboard.config import (
     THEMES,
     DashboardConfig,
 )
-from ragstrike.dashboard.services.errors import NotImplementedByBackendError
 from ragstrike.dashboard.services.transport import BackendTransport
 
 REDACTED = "••••••••"
@@ -140,18 +139,6 @@ class SettingsService:
             else:
                 rendered[spec.name] = REDACTED if is_sensitive(spec.name) else value
         return redact(rendered)
-
-    def engine_config(self) -> dict[str, Any]:
-        """The backend's effective configuration, redacted.
-
-        Empty when the backend does not expose it -- the page then says so rather than implying the
-        engine has no configuration.
-        """
-        try:
-            payload = self.transport.request("GET", "/config")
-        except NotImplementedByBackendError:
-            return {}
-        return redact(payload) if isinstance(payload, Mapping) else {}
 
     @staticmethod
     def apply(config: DashboardConfig, changes: Mapping[str, Any]) -> DashboardConfig:
