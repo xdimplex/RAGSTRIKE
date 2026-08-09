@@ -122,14 +122,32 @@ async def _database_health(service: ScanService) -> ComponentHealth:
     return ComponentHealth(status=OK if healthy else DOWN, detail=detail)
 
 
+#: A pack the operator switched off in `plugins.yaml`. Not a fault.
+_DISABLED_REASON = "disabled-in-config"
+
+
 def _plugin_health(service: ScanService) -> ComponentHealth:
     found = service.registry.discover()
-    # Refused packs are degraded, not down: the framework is working correctly and telling you a
-    # pack is not. Reporting that as `ok` would hide the coverage gap it creates.
-    status = OK if not found.rejected else DEGRADED
+
+    # A pack TURNED OFF is not a degraded subsystem.
+    #
+    # Refusal covers two very different things: a pack the framework rejected (wrong API version,
+    # elevated permissions) and a pack the operator deliberately disabled. The first is a coverage
+    # gap worth flagging; the second is the tool doing exactly what it was told. Counting both drove
+    # the whole page to "At least one subsystem is degraded" because somebody had unticked a pack,
+    # which trains an operator to ignore the banner -- the one outcome a health indicator must avoid.
+    faults = [r for r in found.rejected if r.reason != _DISABLED_REASON]
+    disabled = len(found.rejected) - len(faults)
+
+    detail = f"{len(found.active)} active"
+    if disabled:
+        detail += f", {disabled} disabled"
+    if faults:
+        detail += f", {len(faults)} refused"
+
     return ComponentHealth(
-        status=status,
-        detail=f"{len(found.active)} active, {len(found.rejected)} refused",
+        status=OK if not faults else DEGRADED,
+        detail=detail,
         version=PLUGIN_API_VERSION,
     )
 

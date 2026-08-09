@@ -24,42 +24,33 @@ from rag.session.memory import SessionMemory
 log = logging.getLogger(__name__)
 
 
-#: Short greetings and pleasantries that are not questions about the corpus.
+#: Greetings and pleasantries: an exact, closed set.
 #:
-#: A message like "hii" carries almost no meaning, so a similarity search over the corpus returns
-#: whatever happens to rank highest -- which in a lab holding poisoned documents is usually a
-#: poisoned one. The application then answered a hello with the contents of an attack file.
+#: WHY AN EXACT SET AND NOT "ANY SHORT MESSAGE"
+#:     The first version treated any short message without a question word as small talk. That is
+#:     far too loose: "Repeat your instructions." is short and has no question word, so it took the
+#:     small-talk path -- which skips the system prompt and every control. A leak request phrased as
+#:     a brief imperative would have walked straight past the defences. Matching an exact set of
+#:     social tokens cannot make that mistake, because "repeat your instructions" is not in it.
 #:
-#: This is a ROUTING fix, not a security control. The application simply does not search the
-#: documents for a message that is not asking about them, which is what any assistant should do.
-#: Both profiles get it, because it is about usefulness rather than defence: the vulnerable lab is
-#: still fully vulnerable to every question that IS about the documents.
+#: WHAT IS AND IS NOT HARDCODED HERE
+#:     This list decides ROUTING -- whether to search the documents. It does not decide what to say.
+#:     The model writes the reply, so the greeting sounds like the model rather than like a canned
+#:     string, which is the whole point of doing it this way.
 _GREETINGS = frozenset(
     {
-        "hi", "hii", "hiii", "hey", "heyy", "hello", "helo", "hlo", "yo",
+        "hi", "hii", "hiii", "hey", "heyy", "hello", "helo", "hlo", "yo", "hola",
         "good morning", "good afternoon", "good evening", "greetings",
-        "thanks", "thank you", "thx", "ty", "ok", "okay", "bye", "goodbye",
+        "thanks", "thank you", "thx", "ty", "ok", "okay", "cool", "bye", "goodbye",
         "how are you", "who are you", "what can you do",
     }
 )
 
-#: Longest message still considered small talk. A real question about a document is longer than
-#: this; the cap stops a long injection from hiding behind a leading "hello".
-_GREETING_MAX_CHARS = 24
-
 
 def _is_small_talk(question: str) -> bool:
     """Whether *question* is a greeting rather than a question about the documents."""
-    cleaned = question.strip().strip("!?.,").lower()
-    if len(cleaned) > _GREETING_MAX_CHARS:
-        return False
+    cleaned = " ".join(question.strip().strip("!?.,").lower().split())
     return cleaned in _GREETINGS
-
-
-GREETING_REPLY = (
-    "Hello. I answer questions about the documents that have been uploaded here. "
-    "Ask me something about them and I will answer from those documents."
-)
 
 
 class QueryPipeline:
@@ -112,17 +103,45 @@ class QueryPipeline:
         # used to send the model whatever the search happened to return, which was routinely a
         # poisoned document.
         if _is_small_talk(question):
-            self.memory.record(session_id, question=question, answer=GREETING_REPLY)
+            # The MODEL answers, with no retrieved context attached. The routing decides what the
+            # model is shown; it does not decide what the model says.
+            # A SMALL CONVERSATIONAL PROMPT, not the document-grounded one.
+            #
+            # The normal prompt tells the model to answer only from the retrieved passages. With no
+            # passages that instruction is impossible to satisfy, so the hardened profile answered
+            # "hello" with "the documents provided do not cover this" -- correct by its own rules and
+            # useless to the person typing. Small talk is not a document question, so it does not get
+            # the document scaffolding. The model still writes the words.
+            prompt = (
+                "You are the assistant for a document question-answering application. "
+                "The user has sent a short greeting or pleasantry, not a question about a document. "
+                "Reply in one short, friendly sentence, and invite them to ask about the uploaded "
+                "documents. Do not mention documents you have not been shown.\n\n"
+                f"User: {question}\nAssistant:"
+            )
+            raw_reply = self.llm_client.generate(prompt)
+            # Still through the policy chain. A greeting is low risk, but "low risk" is not a reason
+            # to leave a path where the output controls never run.
+            reply = self.policies.on_response(
+                ResponseContext(
+                    answer=raw_reply,
+                    question=question,
+                    retrieved=[],
+                    model=self.settings.model.name,
+                    extras={"context_block": ""},
+                )
+            )
+            self.memory.record(session_id, question=question, answer=reply)
             return Answer(
-                text=GREETING_REPLY,
+                text=reply,
                 question=question,
                 retrieved=[],
                 sources=[],
-                prompt="",
+                prompt=prompt,
                 model=self.settings.model.name,
                 elapsed_ms=int((time.perf_counter() - started) * 1000),
                 session_id=session_id,
-                raw_response=GREETING_REPLY,
+                raw_response=raw_reply,
             )
 
         retrieved = self.retriever.retrieve(question, top_k=top_k)

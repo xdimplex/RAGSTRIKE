@@ -211,7 +211,9 @@ _COMPONENTS = """
 .rs-brand__mark { display: inline-flex; align-items: center; line-height: 1; }
 .rs-brand__name {
   font-weight: 700;
-  font-size: 1.05rem;
+  /* Bigger than the nav labels beneath it. At 1.05rem the product name read as just another row in
+     the list rather than as the thing the rail belongs to. */
+  font-size: 1.45rem;
   letter-spacing: 0.02em;
   line-height: 1.2;
   white-space: nowrap;
@@ -232,7 +234,10 @@ _COMPONENTS = """
   display: block;
   text-align: center;
   padding: 0.34rem 0.7rem;
-  margin-bottom: 6px;
+  /* Clear of the status badge that sits directly above it.
+     The badge is the last thing in the card body and this link is the first control under it, so
+     with only a bottom margin the two sat on top of each other. */
+  margin: 10px 0 6px;
   border: 1px solid var(--rs-accent);
   border-radius: var(--rs-radius-sm);
   background: var(--rs-accent-soft);
@@ -254,7 +259,13 @@ _COMPONENTS = """
    a scroll track on the sidebar, so the list LOOKS as though something is cut off below it. The
    overflow is hidden on the axis that has nothing to scroll; `overflow-y: auto` stays available on
    the inner content in case a future release adds rows. */
-[data-testid="stSidebar"] { overflow-x: hidden; }
+/* STATIC, not merely scrollbar-less.
+   Hiding the scrollbar left the sidebar still scrollable -- the list moved under the wheel and the
+   brand block slid out of view, which reads as a broken panel. `overflow: hidden` on both axes
+   fixes the rail in place. It fits: the nav is eight rows and a brand block, measured. */
+[data-testid="stSidebar"],
+[data-testid="stSidebarContent"],
+[data-testid="stSidebarUserContent"] { overflow: hidden !important; }
 [data-testid="stSidebar"]::-webkit-scrollbar,
 [data-testid="stSidebarContent"]::-webkit-scrollbar,
 [data-testid="stSidebarUserContent"]::-webkit-scrollbar { width: 0; height: 0; }
@@ -569,13 +580,113 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"]
  * occupy layout space, so the first row of any page renders underneath it -- which is why the
  * metric boxes, the System Status refresh button and the search bar all appeared to be jammed
  * into it. Hiding it and reclaiming the strip is one fix for all of them. */
+/* The header COLLAPSES rather than disappearing.
+ *
+ * `display: none` on the header also removed the sidebar's expand button, which Streamlit renders
+ * inside it -- and a child cannot escape a hidden parent. Collapsing the header to nothing and
+ * disabling its pointer events reclaims the strip just as effectively, while leaving the one
+ * control that has to survive. Its own children are hidden individually below. */
 [data-testid="stHeader"],
-[data-testid="stToolbar"],
-[data-testid="stDecoration"],
-[data-testid="stStatusWidget"],
 header[data-testid="stHeader"] {
+  background: transparent !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  pointer-events: none;
+}
+/* The toolbar collapses too, for the same reason: the sidebar's expand control is rendered INSIDE
+   it, so `display: none` here took the control with it -- the same mistake as the header, one level
+   further down. Collapsed and click-through instead of removed; the expand control re-enables its
+   own pointer events and positions itself. */
+[data-testid="stToolbar"] {
+  height: 0 !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  pointer-events: none;
+}
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"] {
   display: none !important;
   height: 0 !important;
+}
+
+/* -- the sidebar toggle ------------------------------------------------------------------------
+ *
+ * A ONE-WAY DOOR, CAUSED BY THE RULE DIRECTLY ABOVE.
+ *
+ * Streamlit renders the "reopen the sidebar" control inside the header. The header is hidden above
+ * to reclaim the strip, which also hid the reopen control -- so collapsing the sidebar removed the
+ * only way to bring it back, and the nav stayed gone until the page was reloaded.
+ *
+ * The control is therefore pulled out of the hidden header and pinned to the top-left corner of the
+ * viewport, where a navigation toggle belongs. It is `position: fixed` so it does not occupy layout
+ * space and cannot push the first row of a page down.
+ *
+ * Both controls are drawn as a hamburger rather than an arrow. An arrow says "this moves"; three
+ * lines say "this is the menu", which is what it is -- and the same glyph in both states means the
+ * button does not appear to change identity when the sidebar closes. */
+/* THE CONTROL IS A SPAN WITH A MATERIAL ICON, NOT A BUTTON.
+ *
+ * Streamlit renders the expand control as a clickable <span> containing
+ * `<span data-testid="stIconMaterial">keyboard_double_arrow_right</span>`. Every selector written
+ * against `button` or `svg` therefore matched nothing, which is why an earlier attempt at this
+ * appeared to do nothing at all. The container is styled directly and the icon span is what gets
+ * replaced. */
+[data-testid="stExpandSidebarButton"] {
+  /* Clickable again after the header was made pointer-events: none. */
+  pointer-events: auto !important;
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: fixed !important;
+  top: 8px;
+  left: 10px;
+  z-index: 1000;
+  width: 34px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--rs-text);
+  background: var(--rs-surface-raised);
+  border: 1px solid var(--rs-border);
+  border-radius: var(--rs-radius-sm);
+}
+
+[data-testid="stSidebarCollapseButton"] button {
+  background: transparent !important;
+  border: 1px solid var(--rs-border) !important;
+  border-radius: var(--rs-radius-sm) !important;
+  width: 34px;
+  height: 30px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  color: var(--rs-text) !important;
+}
+
+[data-testid="stExpandSidebarButton"]:hover,
+[data-testid="stSidebarCollapseButton"] button:hover {
+  background: var(--rs-accent-soft) !important;
+  border-color: var(--rs-accent) !important;
+}
+
+/* Hide the chevron -- a Material icon span, not an SVG -- and draw three bars in its place. Same
+   glyph open or closed, because the control does not change identity when the panel moves. */
+[data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"],
+[data-testid="stExpandSidebarButton"] > span,
+[data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"] {
+  display: none !important;
+}
+
+[data-testid="stExpandSidebarButton"]::before,
+[data-testid="stSidebarCollapseButton"] button::before {
+  content: "";
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: 0 -5px 0 currentColor, 0 5px 0 currentColor;
 }
 
 /* Wider and tighter. A console uses the whole screen -- capping at 1500px on a 1920 display wastes
@@ -644,8 +755,11 @@ small, .stCaption, [data-testid="stCaptionContainer"] { color: var(--rs-text-mut
    one marked by a left rule. Centred, evenly-spaced buttons read as a menu of actions -- these are
    places, not actions. */
 [data-testid="stSidebar"] .stButton > button {
-  text-align: left;
-  justify-content: flex-start;
+  /* CENTRED. Each label is an icon plus text, and left alignment made the text start at a different
+     x for every row because the icons differ in width -- so the list looked ragged and pushed to
+     one side. Centring the whole button content lines the group up on the rail's own axis. */
+  text-align: center;
+  justify-content: center;
   font-weight: 500;
   padding: 0.3rem 0.55rem;
   border-color: transparent;

@@ -285,10 +285,24 @@ def _compare(context: PageContext, scans: list[ScanView]) -> None:
         return
 
     section("Compare")
-    ids = [scan.id for scan in finished]
+
+    # Scan NAMES in the dropdowns, not ids. Comparing two runs means choosing "the standard sweep"
+    # and "yesterday's smoke test" -- two 32-character hex strings give the operator nothing to
+    # choose between. Labels are made unique before use, because two runs may share a name and a
+    # duplicate label would silently select the wrong scan (the same defect the Detail selector had).
+    by_label: dict[str, ScanView] = {}
+    for item in finished:
+        label = f"{item.name or 'unnamed'}  ·  {item.target or 'no target'}"
+        if label in by_label:
+            label = f"{label}  ·  {item.started_at or item.id}"
+        by_label[label] = item
+
+    labels = list(by_label)
     left, right = st.columns(2)
-    base_id = left.selectbox("Base", ids, index=min(1, len(ids) - 1), key="rs.hist.base")
-    head_id = right.selectbox("Head", ids, index=0, key="rs.hist.head")
+    base_label = left.selectbox("Base", labels, index=min(1, len(labels) - 1), key="rs.hist.base")
+    head_label = right.selectbox("Head", labels, index=0, key="rs.hist.head")
+    base_id = by_label[str(base_label)].id
+    head_id = by_label[str(head_label)].id
 
     if base_id == head_id:
         st.caption("Pick two different scans.")

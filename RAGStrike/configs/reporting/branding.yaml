@@ -7,11 +7,15 @@ version: 1
 branding:
   title: "RAG Security Assessment"
 
-  # Who the assessment was performed for or by. Rendered on the cover page.
+  # Who the assessment was performed for or by. Rendered on the cover page of every format --
+  # HTML, PDF, Markdown and JSON all read this one value, so they cannot disagree.
+  #
+  # Set it to the organisation the assessment is for. It is deliberately NOT the name of whoever
+  # built the tool: a report belongs to the engagement, not to the scanner.
   #
   # Left empty, the cover printed a bare "Organization —", which reads as a field the tool failed to
-  # populate rather than one nobody filled in. Set it to your own name or your organisation's.
-  organization: "IACSD · C-DAC ACTS"
+  # populate rather than one nobody filled in.
+  organization: "Northwind Analytics Ltd"
 
   # A logo placeholder. Accepts a caption or a data: URI ONLY -- the renderer never fetches a
   # remote image, because a report that phones home when opened is a tracking pixel whatever it

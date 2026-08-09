@@ -5,4 +5,6 @@ plugins:
     config:
       prompt_canary: VRAG-CANARY-SECRET-a7f3c91e4b8d2065-SYNTHETIC-NOT-A-REAL-CREDENTIAL
     enabled: true
+  source-attribution:
+    enabled: true
 version: 1

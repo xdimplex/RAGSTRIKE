@@ -111,24 +111,15 @@ show_prompt = False
 show_raw = False
 show_retrieval = False
 
-with st.sidebar:
-    # No leading divider: the block it used to separate (Query options) is gone, so it drew a rule
-    # under nothing and opened an empty panel.
-    st.caption(
-        f"Session: `{st.session_state[SESSION_KEY] or 'new'}`\n\n"
-        f"History is **unbounded** (weakness V8): every prior turn is replayed into every prompt."
-    )
-    if st.button("New session"):
-        if st.session_state[SESSION_KEY]:
-            # The session may not exist server-side yet; clearing it locally is enough either way.
-            with contextlib.suppress(ApiError):
-                api.reset_session(st.session_state[SESSION_KEY])
-        st.session_state[SESSION_KEY] = None
-        st.session_state[TURNS_KEY] = []
-        # Drop it from the URL too, or the next refresh would rejoin the conversation the operator
-        # just asked to end.
-        st.query_params.pop("s", None)
-        st.rerun()
+# THE SIDEBAR SESSION PANEL WAS REMOVED.
+#
+# It showed the raw conversation id and a "New session" button. The id is an internal database key
+# -- a reader gains nothing from seeing 32 characters of hex, and it made the panel look like debug
+# output left switched on. The session still exists and is still carried in the URL; it is simply
+# not put in front of the user.
+#
+# Starting a fresh conversation is now "Clear chat", at the bottom of the page where the
+# conversation ends, rather than a control competing with the navigation.
 
 # ------------------------------------------------------------------------------------------------
 # History
