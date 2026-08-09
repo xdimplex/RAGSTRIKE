@@ -197,13 +197,25 @@ class ScanService:
         lines = [LogLine.from_payload(row) for row in rows if isinstance(row, Mapping)]
         return lines[-limit:]
 
-    def estimate(self, profile: ScanProfile, plugin_count: int) -> tuple[int, float]:
+    def estimate(
+        self, profile: ScanProfile, plugin_count: int, payloads: int = 0
+    ) -> tuple[int, float]:
         """Cases and seconds, estimated for the plan summary.
 
-        Arithmetic, not a prediction: cases scale with the selected plugins, and the per-case figure
-        is a fixed constant shown as "estimated" in the UI. A number derived from something the
-        operator can see beats a confident-looking number derived from nothing.
+        *payloads* is the summed payload count of the packs actually selected -- the same number
+        ``payloads()`` returns to the scheduler -- and it is used whenever it is available.
+
+        THE FALLBACK IS A LAST RESORT, NOT THE NORMAL PATH.
+        A per-plugin constant of 40 used to be the only path, so the panel announced "360 cases"
+        for the nine installed packs while the run executed 65. Being wrong by five and a half
+        times is not an estimate; the panel sat directly above a button that starts a long
+        operation, and the number is what an operator uses to decide whether they have time for it.
+
+        The constant survives only for a backend that will not enumerate payloads, where a rough
+        number still beats a blank.
         """
+        if payloads > 0:
+            return payloads, payloads * 0.55
         per_plugin = max(1, profile.estimated_cases // 8) if profile.estimated_cases else 40
         cases = per_plugin * max(1, plugin_count)
         return cases, cases * 0.55

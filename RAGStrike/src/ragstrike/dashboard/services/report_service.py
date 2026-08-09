@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from ragstrike.dashboard.services.errors import NotImplementedByBackendError, ReportFailureError
@@ -105,7 +105,23 @@ class ReportService:
         payload = self.transport.request(
             "POST", f"/scans/{scan_id}/reports", json={"format": fmt, **options}
         )
-        return ReportView.from_payload(payload if isinstance(payload, Mapping) else {})
+        body: Mapping[str, Any] = payload if isinstance(payload, Mapping) else {}
+        view = ReportView.from_payload(body)
+
+        # THE ID GENERATION RETURNS IS NOT THE ID A REPORT IS STORED UNDER.
+        #
+        # `POST /scans/{id}/reports` answers with `report_id`, one id for the whole generation --
+        # which may have produced several formats. Each is stored separately as
+        # `{report_id}-{fmt}`, because one render of one scan into HTML and into JSON is two
+        # documents.
+        #
+        # "Prepare export" generated the report, asked for it back by the bare `report_id`, got a
+        # 404, and surfaced it as "request rejected -- exports nothing". The generation had
+        # succeeded every time; only the second call was wrong.
+        report_id = str(body.get("report_id") or "")
+        if report_id and not view.id.endswith(f"-{fmt}"):
+            view = replace(view, id=f"{report_id}-{fmt}", fmt=fmt)
+        return view
 
     def inline_url(self, scan_id: str, fmt: str) -> str:
         """A browsable URL for a stored report, or ``""`` when there is nothing to link to.

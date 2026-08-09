@@ -91,6 +91,15 @@ class ApiClient:
             },
         )
 
+    def session_history(self, session_id: str) -> dict[str, Any]:
+        """Every turn the backend has recorded for *session_id*.
+
+        Used to rebuild the transcript after a browser refresh: Streamlit discards session state on
+        F5, so without this the page kept a valid session id pointing at a conversation it could no
+        longer show -- while the backend went on replaying those same turns into every new prompt.
+        """
+        return self._get(f"/chat/session/{session_id}")
+
     def reset_session(self, session_id: str) -> dict[str, Any]:
         return self._request("POST", "/chat/reset", json={"session_id": session_id})
 

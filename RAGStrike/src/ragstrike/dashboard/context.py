@@ -13,12 +13,12 @@ WHAT A PAGE MAY DO WITH IT
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ragstrike.dashboard.config import DashboardConfig
 from ragstrike.dashboard.services import Services
 from ragstrike.dashboard.state.store import AppState
-from ragstrike.dashboard.theme.palette import Palette, palette_for
+from ragstrike.dashboard.theme.palette import DARK, Palette
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,8 +31,8 @@ class PageContext:
     #: Whether the backend answered its health check on this re-run. Computed once by the shell so
     #: nine pages do not each make their own probe and each draw their own conclusion.
     backend_online: bool = False
-    #: Populated by the shell from the config's theme name.
-    palette: Palette = field(default_factory=lambda: palette_for("dark"))
+    #: The console's only palette. See `build_context` for why there is no longer a choice.
+    palette: Palette = DARK
 
     @property
     def demo(self) -> bool:
@@ -58,12 +58,16 @@ def build_context(
         state=state,
         config=config,
         backend_online=backend_online,
-        # Read on every run so a theme change takes effect on the next re-render. `config` here is
-        # `state.settings`, which is the SINGLE source of truth for the theme -- both the Settings
-        # page and the sidebar toggle write to it. Two stores briefly existed and immediately
-        # fought: the sidebar's stored widget value silently overrode the Settings page's choice.
+        # THE CONSOLE IS DARK. There is no runtime choice, and that is the fix.
         #
-        # `palette_for` falls back to dark on an unknown name, so a stale setting or a hand-edited
-        # URL cannot break the page.
-        palette=palette_for(config.theme),
+        # A light mode existed and was reported as broken five separate times -- always the same
+        # symptom, a light page carrying dark widgets. The cause was never one selector: Streamlit
+        # compiles its base theme into every native widget, so a second theme means keeping a
+        # hand-written stylesheet in step with a compiled one across every widget and every
+        # Streamlit release. Each fix closed the gap for the widgets someone had thought of.
+        #
+        # Deleting the choice deletes the class of bug. A security console that is always dark
+        # cannot be half light, and DARK is the right default for one: it is what the operator
+        # stares at for the length of a scan.
+        palette=DARK,
     )

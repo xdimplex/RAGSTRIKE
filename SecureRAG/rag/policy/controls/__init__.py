@@ -125,6 +125,9 @@ def build_controls(security: Any, *, system_prompt: str = "") -> list[SecurityPo
         # Last, always. A test enforces this.
         SecretMasker(
             mask_emails=masking.mask_emails,
+            mask_phone_numbers=masking.mask_phone_numbers,
             fingerprint_chars=masking.fingerprint_chars,
+            refuse_on_secret=masking.refuse_on_secret,
+            match_context_values=masking.match_context_values,
         ),
     ]

@@ -151,7 +151,9 @@ def _activity(context: PageContext) -> None:
     section("Recent activity")
     events = [
         TimelineEvent(
-            title=f"{scan.id} — {scan.target}",
+            # The name, not the id. A column of 32-character hex is unreadable, and this list
+            # exists to be skimmed -- "which scan was that?" is the question it answers.
+            title=f"{scan.name or scan.id[:8]} — {scan.target}",
             timestamp=scan.started_at,
             detail=f"{scan.outcome or scan.state.upper()} · risk {scan.risk_score:.1f} · "
             f"{scan.findings_count} findings",
@@ -166,11 +168,13 @@ def _quick_actions(context: PageContext) -> None:
     import streamlit as st
 
     section("Quick actions")
-    for column, (label, page_id, help_text) in zip(
+    for column, (label, page_id, _help) in zip(
         st.columns(len(QUICK_ACTIONS)), QUICK_ACTIONS, strict=True
     ):
+        # No `help=`. Hover tooltips floated over the controls they described, everywhere they were
+        # used; these labels ("New scan", "Targets") need no gloss.
         with column, st.container():
-            if st.button(label, key=f"rs.home.{page_id}", width="stretch", help=help_text):
+            if st.button(label, key=f"rs.home.{page_id}", width="stretch"):
                 context.navigate(page_id)
                 st.rerun()
 

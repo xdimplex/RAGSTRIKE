@@ -39,7 +39,10 @@ def test_the_shipped_security_file_loads_and_validates() -> None:
     settings = load_security_settings(Path.cwd())
 
     assert settings.validation.max_question_chars > 0
-    assert settings.uploads.allowed_extensions == ["pdf"]
+    # pdf/txt/md/csv. An operator should be able to upload the documents they actually have,
+    # and every format takes the identical ingestion path -- see rag/ingestion/pipeline.py.
+    # Sorted: the field validator canonicalises the list, so order is not part of the contract.
+    assert sorted(settings.uploads.allowed_extensions) == ["csv", "md", "pdf", "txt"]
 
 
 def test_a_missing_file_yields_a_fully_hardened_application(tmp_path: Path) -> None:

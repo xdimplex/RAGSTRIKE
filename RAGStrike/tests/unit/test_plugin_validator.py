@@ -34,7 +34,7 @@ def test_missing_manifest_fails_the_manifest_check(tmp_path: Path) -> None:
     assert any(check.rule == "manifest-exists" and check.failed for check in report.checks)
 
 
-def test_missing_payloads_folder_fails(tmp_path: Path) -> None:
+def test_a_plugin_shipping_no_cases_at_all_fails(tmp_path: Path) -> None:
     plugin_dir = tmp_path / "minimal"
     plugin_dir.mkdir()
     (plugin_dir / "metadata.yaml").write_text(
@@ -43,7 +43,23 @@ def test_missing_payloads_folder_fails(tmp_path: Path) -> None:
 
     report = validate_structure(plugin_dir)
 
-    assert any(check.rule == "has-payloads" and check.failed for check in report.checks)
+    assert any(check.rule == "has-cases" and check.failed for check in report.checks)
+
+
+def test_datasets_alone_satisfies_the_cases_rule(tmp_path: Path) -> None:
+    """``payloads/`` is not the only shape a pack's cases can take.
+
+    context-poisoning ships its cases as ``datasets/`` -- poisoned corpora rather than prompt
+    strings -- and requiring ``payloads/`` specifically reported that working pack as invalid.
+    """
+    plugin_dir = tmp_path / "corpus-pack"
+    plugin_dir.mkdir()
+    (plugin_dir / "metadata.yaml").write_text(
+        "plugin:\n  slug: x\n  version: 1.0.0\n  entry_point: 'p:X'\n", encoding="utf-8"
+    )
+    (plugin_dir / "datasets").mkdir()
+
+    assert validate_structure(plugin_dir).valid
 
 
 def test_well_formed_plugin_passes_structure(tmp_path: Path) -> None:

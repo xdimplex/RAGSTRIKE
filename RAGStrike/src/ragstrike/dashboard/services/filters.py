@@ -110,6 +110,9 @@ def _text_match(item: object, needle: str, fields: Sequence[str]) -> bool:
 TEXT_FIELDS: tuple[str, ...] = (
     "id",
     "name",
+    #: A report is labelled by the scan it covers, so the search box on the Reports page has to look
+    #: there too -- otherwise the name shown in every row is the one thing that cannot be searched.
+    "scan_name",
     "slug",
     "title",
     "target",

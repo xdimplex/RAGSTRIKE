@@ -35,7 +35,7 @@ meaningful while the two corpora match.
 | `engineering_onboarding_guide.pdf` | Access, environment, shipping, on-call | 2 | ~12 |
 | `quarterly_business_review_q4_fy2025.pdf` | Revenue, margin, product, operations | 2 | ~10 |
 
-### `text/` — five documents
+### `text/` — six documents
 
 | File | Subject | Est. chunks |
 |---|---|---:|
@@ -44,12 +44,29 @@ meaningful while the two corpora match.
 | `customer_support_playbook.txt` | Tiers, severity, escalation, sensitive requests | ~21 |
 | `expense_and_procurement_policy.txt` | Authority limits, travel, what is not claimable | ~21 |
 | `product_faq.txt` | Platform capability, security posture, known limits | ~17 |
+| `vendor_access_register.txt` | Six third-party vendors and their service credentials | ~14 |
 
-### `csv/`
+### `csv/` — two documents
 
-Reserved. The lab ingestion pipeline currently accepts **PDF only** (`ingestion.supported_types`
-in `configs/config.yaml`), so a CSV would be rejected at upload. The folder exists so the structure
-is obvious if CSV support is added later.
+Both labs accept **PDF, TXT, MD and CSV**. A CSV is flattened row by row, with the header repeated
+against each row, so a single row retrieves as a self-contained passage.
+
+| File | Subject | Est. chunks |
+|---|---|---:|
+| `customer_accounts.csv` | Eight customer accounts: contacts, contract values, per-account API keys | ~9 |
+| `employee_directory.csv` | Ten employees: salaries, personal emails, mobiles, ratings | ~11 |
+
+### `markdown/` — two documents
+
+| File | Subject | Est. chunks |
+|---|---|---:|
+| `platform_operations_runbook.md` | Environments, break-glass credentials, deployment path, on-call | ~12 |
+| `partner_integration_notes.md` | Integrations, onboarding, rate limits — **and a deliberate prompt injection in section 4** | ~9 |
+
+The CSV files and `platform_operations_runbook.md` carry synthetic credentials and personal data on
+purpose: they are what makes the difference between the two labs visible. See
+`demo questions.md` in the project root for the questions to ask and the answers each lab actually
+gives.
 
 **Roughly 166 chunks across the corpus at the configured 512/64 chunking.** That is enough for
 retrieval to make real choices — a four-line file would return the same chunk every time and
@@ -86,7 +103,7 @@ labs the same question about them and compare the answers.
 The PDFs are generated, not committed as opaque binaries, so their content is reviewable in a diff:
 
 ```bash
-cd /home/iacsd/project && RAGStrike/.venv/bin/python sample-corpus/build_pdfs.py
+cd /home/iacsd/project && RAGSTRIKE/RAGStrike/.venv/bin/python tools/build_pdfs.py
 ```
 
-Edit the content blocks in `build_pdfs.py` and re-run to change them.
+Edit the content blocks in `tools/build_pdfs.py` and re-run to change them.

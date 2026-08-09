@@ -1,15 +1,10 @@
 """System status: subsystem health, versions, host resources.
 
 WHY EVERY SUBSYSTEM HAS A ROW EVEN WHEN THE BACKEND IS SILENT
-    The brief names eight subsystems. If the dashboard only rendered the ones the backend mentioned,
-    a backend that stopped reporting ChromaDB would make ChromaDB *disappear* -- which reads as
-    "fine" and means "unknown". :data:`SUBSYSTEMS` is the fixed list, and anything the backend omits
-    is shown as ``unknown`` with that word on it.
-
-CPU AND MEMORY COME FROM THE BACKEND
-    Measuring them in this process would report the Streamlit server's usage, which in the shipped
-    compose file is a different container from the engine. A number that is precise and about the
-    wrong process is worse than no number.
+    If the dashboard only rendered the ones the backend mentioned, a backend that stopped reporting
+    SQLite would make SQLite *disappear* -- which reads as "fine" and means "unknown".
+    :data:`SUBSYSTEMS` is the fixed list, and anything the backend omits is shown as ``unknown``
+    with that word on it.
 """
 
 from __future__ import annotations
@@ -30,11 +25,18 @@ from ragstrike.dashboard.services.models import (
 from ragstrike.dashboard.services.transport import BackendTransport
 
 #: (payload key, display name). Order is the order they render in.
+#:
+#: RAGSTRIKE'S OWN SUBSYSTEMS ONLY.
+#:     ChromaDB was listed here and rendered with the note "not used by the scanner; the lab targets
+#:     own the vector store" -- a permanent row on the health page for a component this application
+#:     does not use. A status board is a list of things that can break YOUR tool; a row that can only
+#:     ever say "not mine" trains the reader to skim the board, which is the opposite of its purpose.
+#:
+#:     The labs have their own System Status pages, and ChromaDB belongs on those.
 SUBSYSTEMS: tuple[tuple[str, str], ...] = (
     ("fastapi", "FastAPI"),
     ("ollama", "Ollama"),
     ("sqlite", "SQLite"),
-    ("chromadb", "ChromaDB"),
     ("analyzer", "Analyzer"),
     ("reporting", "Reporting Engine"),
     ("plugin_framework", "Plugin Framework"),

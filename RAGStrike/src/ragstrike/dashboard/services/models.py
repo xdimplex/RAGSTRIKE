@@ -245,7 +245,11 @@ class PluginView:
             permissions=tuple(as_list(payload, "permissions")),
             rejection_reason=as_str(payload, "rejection_reason"),
             attack_count=as_int(payload, "attack_count"),
-            payload_count=as_int(payload, "payload_count"),
+            # `payloads` is what the HTTP API calls it; `payload_count` is the demo transport's
+            # name. Both are read, because a field the backend fills under a different name is how
+            # this column came to show 0 for every pack against a live engine while looking correct
+            # in demo mode.
+            payload_count=as_int(payload, "payload_count") or as_int(payload, "payloads"),
             api_version=as_str(payload, "api_version"),
         )
 
@@ -399,11 +403,20 @@ class FindingView:
     def from_payload(cls, payload: Mapping[str, Any]) -> FindingView:
         evidence = as_mapping(payload, "evidence")
         return cls(
-            id=as_str(payload, "id"),
+            # `finding_id` is the API's name for it. Reading only `id` left every finding with a
+            # blank identity, which is invisible in the table and fatal anywhere findings are keyed.
+            id=as_str(payload, "id") or as_str(payload, "finding_id"),
             scan_id=as_str(payload, "scan_id"),
             plugin=as_str(payload, "plugin_id") or as_str(payload, "plugin"),
             category=as_str(payload, "category"),
-            title=as_str(payload, "title") or as_str(payload, "category"),
+            # `description` before the category fallback: the API sends the analyzer's trace of
+            # which rules fired, and falling straight through to the category made the "Finding"
+            # column a duplicate of the "Category" column beside it.
+            title=(
+                as_str(payload, "title")
+                or as_str(payload, "description")
+                or as_str(payload, "category")
+            ),
             severity=as_str(payload, "severity", "INFO").upper(),
             status=as_str(payload, "status", "PASS").upper(),
             confidence=as_float(payload, "confidence"),
@@ -444,6 +457,7 @@ class ReportView:
 
     id: str
     scan_id: str = ""
+    scan_name: str = ""
     target: str = ""
     fmt: str = "html"
     generated_at: str = ""
@@ -453,6 +467,21 @@ class ReportView:
     status: str = ""
     findings_count: int = 0
     report_version: str = ""
+
+    @property
+    def label(self) -> str:
+        """What to call this report on screen.
+
+        The scan's NAME and the format, because that is how an operator asks for a report -- "the
+        standard run against secure-rag, as PDF". The id is a 32-character hex string that identifies
+        the report to the database and nobody else; a page that lists a dozen of them is a wall of
+        indistinguishable text.
+
+        Falls back to the id when the scan is gone: a report whose scan was deleted still has to be
+        openable and deletable, and a blank row would be worse than an ugly one.
+        """
+        name = self.scan_name or self.scan_id[:8] or self.id
+        return f"{name} · {self.fmt.upper()}"
 
     @property
     def size_label(self) -> str:
@@ -467,6 +496,7 @@ class ReportView:
         return cls(
             id=as_str(payload, "id") or as_str(payload, "report_id"),
             scan_id=as_str(payload, "scan_id"),
+            scan_name=as_str(payload, "scan_name"),
             target=as_str(payload, "target"),
             fmt=as_str(payload, "format", "html").lower() or as_str(payload, "fmt", "html").lower(),
             generated_at=as_str(payload, "generated_at"),
@@ -474,7 +504,10 @@ class ReportView:
             risk_score=as_float(payload, "risk_score"),
             grade=as_str(payload, "grade").upper(),
             status=as_str(payload, "status").upper(),
-            findings_count=as_int(payload, "findings_count"),
+            # The API's field is `finding_count`; this read `findings_count` only, so the Findings
+            # column showed 0 on a report that had nine of them. Both spellings are accepted rather
+            # than renaming one of them, because the demo transport uses the plural.
+            findings_count=as_int(payload, "findings_count") or as_int(payload, "finding_count"),
             report_version=as_str(payload, "report_version"),
         )
 

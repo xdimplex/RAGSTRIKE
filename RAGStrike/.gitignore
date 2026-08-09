@@ -94,7 +94,6 @@ htmlcov/
 !.vscode/extensions.json
 .idea/
 # per-machine tool permissions; contains absolute paths, not shareable
-.claude/settings.local.json
 *.swp
 *.swo
 *~

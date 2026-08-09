@@ -98,6 +98,24 @@ _COMPONENTS = """
   border-radius: var(--rs-radius-sm) var(--rs-radius-sm) 0 0;
 }
 .rs-card--raised { background: var(--rs-surface-raised); }
+
+/* The Subsystems panel: a real grid, so every card in a row is the height of the tallest one and the
+   next row starts on a straight line. Streamlit columns cannot do this -- each column sizes to its
+   own content, which is what made eight subsystem cards render as a staircase. */
+.rs-grid {
+  display: grid;
+  gap: var(--rs-space-sm);
+  margin-bottom: var(--rs-space-sm);
+}
+/* Fill the grid cell rather than the card's own content height, and push the version footer to the
+   bottom so those line up across the row too. */
+.rs-card--grid { height: 100%; margin-bottom: 0; display: flex; flex-direction: column; }
+.rs-card--grid .rs-card__foot { margin-top: auto; }
+
+@media (max-width: 900px) {
+  /* Four slivers on a narrow window are unreadable; two columns is the useful minimum. */
+  .rs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
 /* For a card already sitting inside a bordered Streamlit container: no border of its own, no
    margin, no top rule. Nested borders read as a rendering bug, and the margin was what pushed the
    card's visual edge past the box the layout had reserved for it. */
@@ -224,6 +242,43 @@ _COMPONENTS = """
   text-decoration: none !important;
 }
 .rs-openlink:hover { background: var(--rs-accent); color: #fff !important; }
+
+/* A spacer the height of a Streamlit widget LABEL.
+   Buttons in a column beside a selectbox start at the top of their cell, level with the selector's
+   label rather than with the selector itself. This drops them by exactly one label so a row of
+   mixed controls lines up on its inputs. */
+.rs-actionpad { height: 27px; }
+
+/* -- sidebar: no scrollbar -------------------------------------------------------------------
+   The nav fits without scrolling now that the group headings are gone, but Streamlit still renders
+   a scroll track on the sidebar, so the list LOOKS as though something is cut off below it. The
+   overflow is hidden on the axis that has nothing to scroll; `overflow-y: auto` stays available on
+   the inner content in case a future release adds rows. */
+[data-testid="stSidebar"] { overflow-x: hidden; }
+[data-testid="stSidebar"]::-webkit-scrollbar,
+[data-testid="stSidebarContent"]::-webkit-scrollbar,
+[data-testid="stSidebarUserContent"]::-webkit-scrollbar { width: 0; height: 0; }
+[data-testid="stSidebar"],
+[data-testid="stSidebarContent"] { scrollbar-width: none; }
+
+/* -- card/action separation -------------------------------------------------------------------
+   A `rs-card--bare` sits inside a bordered container with its action row directly beneath. Four
+   pixels of padding left the card's last element -- the status badge on a report, the requires line
+   on a plugin -- resting on the first button. The buttons are a separate act from the summary and
+   need to read that way. */
+.rs-card--bare { padding-bottom: var(--rs-space-md); }
+
+/* Space above a confirmation control that follows a panel. The "I confirm I am authorized" checkbox
+   sat flush against the PLAN box, so the two read as one block -- and the one thing an operator must
+   consciously agree to should not look like the last line of the summary above it. */
+/* 24px, not the 14px this started at. The sketch the layout is being matched against separates the
+   PLAN box, the confirmation, and START SCAN by roughly the height of a line of text each; at 14px
+   the checkbox still crowded the box it follows. */
+.rs-confirmpad { height: 24px; }
+
+/* And the same again below the checkbox, so the button that starts a seventeen-minute scan is not
+   touching the control that authorises it. */
+.rs-startpad { height: 14px; }
 
 .rs-row { display: flex; align-items: center; gap: var(--rs-space-sm); flex-wrap: wrap; }
 .rs-row--split { justify-content: space-between; }
@@ -367,7 +422,10 @@ _COMPONENTS = """
   display: flex;
   align-items: center;
   gap: var(--rs-space-sm);
-  margin: var(--rs-space-lg) 0 var(--rs-space-sm);
+  /* The bottom margin was `space-sm` (4px), so a row of buttons under a heading appeared to rest
+     ON the separator rule -- the "Quick actions" collision. A heading needs more space below it
+     than the gap between the things it heads, or it reads as part of the first one. */
+  margin: var(--rs-space-lg) 0 var(--rs-space-md);
   font-size: var(--rs-text-xs);
   letter-spacing: var(--rs-tracking);
   text-transform: uppercase;
@@ -501,15 +559,33 @@ html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"]
 [data-testid="stMain"], [data-testid="stMainBlockContainer"], [data-testid="stBottom"] {
   background: var(--rs-bg) !important;
 }
-[data-testid="stHeader"] { border-bottom: 1px solid var(--rs-border); }
-[data-testid="stToolbar"] { right: 8px; }
+/* THE DEPLOY / STOP BAR IS GONE.
+ *
+ * Streamlit's header is a fixed overlay carrying its own controls -- "Deploy", "Stop", the running
+ * indicator. None of them mean anything for a locally-run security console: there is nothing to
+ * deploy to, and a scan is stopped from Scan Center, not from Streamlit's chrome.
+ *
+ * It was also the direct cause of several reported collisions. Being an OVERLAY, it does not
+ * occupy layout space, so the first row of any page renders underneath it -- which is why the
+ * metric boxes, the System Status refresh button and the search bar all appeared to be jammed
+ * into it. Hiding it and reclaiming the strip is one fix for all of them. */
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+header[data-testid="stHeader"] {
+  display: none !important;
+  height: 0 !important;
+}
 
 /* Wider and tighter. A console uses the whole screen -- capping at 1500px on a 1920 display wastes
    a fifth of the width the operator is trying to read grids in -- and the top padding was pushing
    the first panel down for no reason. */
 section.main > div.block-container,
 [data-testid="stMainBlockContainer"] {
-  padding-top: 1.1rem;
+  /* 1.1rem was chosen to sit under the header. With the header gone this is simply the top
+     margin of the page, and the first panel starts where the reader expects it to. */
+  padding-top: 1.4rem;
   padding-bottom: 2rem;
   max-width: 1760px;
 }
@@ -556,7 +632,13 @@ small, .stCaption, [data-testid="stCaptionContainer"] { color: var(--rs-text-mut
 }
 [data-testid="stSidebar"] * { color: var(--rs-text); }
 [data-testid="stSidebar"] .rs-label { padding-left: 2px; }
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 2px; }
+/* 2px was too tight for the HEADER, where three separate markdown blocks stack: the wordmark, the
+   tagline, and the connection line. Their own line boxes were touching, so "connected" rendered on
+   top of "Offensive security evaluation for RAG systems". The nav buttons below still want a tight
+   rhythm, so the gap is set per-region rather than globally. */
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { gap: 4px; }
+[data-testid="stSidebar"] .rs-brand { margin-bottom: 10px; }
+[data-testid="stSidebar"] .rs-conn { margin-top: 6px; }
 
 /* Navigation entries read as a list of modules, left-aligned and tightly stacked, with the active
    one marked by a left rule. Centred, evenly-spaced buttons read as a menu of actions -- these are

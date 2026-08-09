@@ -4,7 +4,7 @@
 
 **An Extensible Offensive Security Evaluation Framework for Retrieval-Augmented Generation Systems**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](CHANGELOG.md)
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 [![Tests](https://img.shields.io/badge/tests-1327%20passing-green)](docs/project-metrics.md)
 [![Coverage](https://img.shields.io/badge/coverage-89.9%25-green)](docs/project-metrics.md)
 [![Contracts](https://img.shields.io/badge/import%20contracts-6%2F6-green)](.importlinter)
@@ -297,7 +297,6 @@ Start with [`ARCHITECTURE.md`](ARCHITECTURE.md) for the layer map and the depend
 | [`docs/annex-d-risk-roadmap.md`](docs/annex-d-risk-roadmap.md) | Risk register, milestones, roadmap |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Layer map, dependency rule, how the scaffold maps to the SDD |
 | [`INSTALL.md`](INSTALL.md) | Getting a development environment running |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Workflow, standards, how to contribute an attack pack |
 | [`SECURITY.md`](SECURITY.md) | Responsible use, the plugin trust model, vulnerability reporting |
 | [`ROADMAP.md`](ROADMAP.md) | Phases 1–11 and beyond |
 | [`docs/limitations.md`](docs/limitations.md) | **What this does not do.** The most important document here |

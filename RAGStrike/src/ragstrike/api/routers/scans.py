@@ -419,6 +419,11 @@ async def scan_findings(scan_id: str, service: Service) -> FindingList:
                 # trace of which rules fired, which is the useful thing to surface.
                 description=finding.notes,
                 recommendation=finding.recommendation,
+                timestamp=finding.timestamp,
+                # The normalized evidence's own one-line summary. Only that line: the rest of the
+                # blob carries the response text a target returned, which is attacker-influenced
+                # and has no business being shipped to draw a table row.
+                evidence_summary=str(finding.evidence.get("summary", "")),
             )
             for finding in findings
         ],

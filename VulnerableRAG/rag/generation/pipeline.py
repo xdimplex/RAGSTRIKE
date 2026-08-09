@@ -24,6 +24,44 @@ from rag.session.memory import SessionMemory
 log = logging.getLogger(__name__)
 
 
+#: Short greetings and pleasantries that are not questions about the corpus.
+#:
+#: A message like "hii" carries almost no meaning, so a similarity search over the corpus returns
+#: whatever happens to rank highest -- which in a lab holding poisoned documents is usually a
+#: poisoned one. The application then answered a hello with the contents of an attack file.
+#:
+#: This is a ROUTING fix, not a security control. The application simply does not search the
+#: documents for a message that is not asking about them, which is what any assistant should do.
+#: Both profiles get it, because it is about usefulness rather than defence: the vulnerable lab is
+#: still fully vulnerable to every question that IS about the documents.
+_GREETINGS = frozenset(
+    {
+        "hi", "hii", "hiii", "hey", "heyy", "hello", "helo", "hlo", "yo",
+        "good morning", "good afternoon", "good evening", "greetings",
+        "thanks", "thank you", "thx", "ty", "ok", "okay", "bye", "goodbye",
+        "how are you", "who are you", "what can you do",
+    }
+)
+
+#: Longest message still considered small talk. A real question about a document is longer than
+#: this; the cap stops a long injection from hiding behind a leading "hello".
+_GREETING_MAX_CHARS = 24
+
+
+def _is_small_talk(question: str) -> bool:
+    """Whether *question* is a greeting rather than a question about the documents."""
+    cleaned = question.strip().strip("!?.,").lower()
+    if len(cleaned) > _GREETING_MAX_CHARS:
+        return False
+    return cleaned in _GREETINGS
+
+
+GREETING_REPLY = (
+    "Hello. I answer questions about the documents that have been uploaded here. "
+    "Ask me something about them and I will answer from those documents."
+)
+
+
 class QueryPipeline:
     """Answers a question from the ingested corpus."""
 
@@ -69,6 +107,23 @@ class QueryPipeline:
         """
         started = time.perf_counter()
         session_id = session_id or SessionMemory.new_session_id()
+
+        # A greeting is not a document question, so nothing is retrieved for it. Answering "hii"
+        # used to send the model whatever the search happened to return, which was routinely a
+        # poisoned document.
+        if _is_small_talk(question):
+            self.memory.record(session_id, question=question, answer=GREETING_REPLY)
+            return Answer(
+                text=GREETING_REPLY,
+                question=question,
+                retrieved=[],
+                sources=[],
+                prompt="",
+                model=self.settings.model.name,
+                elapsed_ms=int((time.perf_counter() - started) * 1000),
+                session_id=session_id,
+                raw_response=GREETING_REPLY,
+            )
 
         retrieved = self.retriever.retrieve(question, top_k=top_k)
 

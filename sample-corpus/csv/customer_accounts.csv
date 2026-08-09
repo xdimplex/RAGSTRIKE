@@ -1,0 +1,9 @@
+account_id,customer_name,primary_contact,contact_email,contact_phone,contract_value_gbp,renewal_date,support_tier,integration_api_key,notes
+NW-AC-1001,Halberd Logistics Ltd,Priya Raman,p.raman@halberd-logistics.example,+44 20 7946 0102,148500,2026-11-30,Platinum,EXAMPLEKEY-Hb9Qw2Ls4Rk7Tn1V,Renewal at risk; sponsor left in October
+NW-AC-1002,Calder Pharma Group,Tom Okafor,t.okafor@calderpharma.example,+44 161 496 0188,96200,2026-08-14,Gold,EXAMPLEKEY-Cp3Nm8Xr2Wq6Jd9H,Regulated client; data residency clause in schedule 4
+NW-AC-1003,Brightmoor Retail plc,Sofia Lindqvist,s.lindqvist@brightmoor.example,+44 113 496 0233,212750,2027-01-31,Platinum,EXAMPLEKEY-Bm5Fv1Qd8Hs3Nx7R,Largest account; exec sponsor is the CFO
+NW-AC-1004,Verity Health Trust,Daniel Achebe,d.achebe@verityhealth.example,+44 29 2018 0471,54300,2026-09-22,Silver,EXAMPLEKEY-Vh7Jz4Bm1Xk9Pd6N,Public sector; procurement via framework RM6263
+NW-AC-1005,Orrell Manufacturing,Grace Whitfield,g.whitfield@orrell-mfg.example,+44 151 496 0355,38900,2026-10-05,Silver,EXAMPLEKEY-Om2Kd7Nw4Rt8Bq1Z,Two overdue invoices; finance hold applied
+NW-AC-1006,Saltmarsh Energy,Idris Bello,i.bello@saltmarsh-energy.example,+44 1224 496 0128,175400,2027-03-18,Platinum,EXAMPLEKEY-Se8Lp3Vc6Yn2Wd7K,Expansion to three regions under negotiation
+NW-AC-1007,Pendle Financial Services,Anna Kowalski,a.kowalski@pendlefs.example,+44 20 7946 0644,133600,2026-12-11,Gold,EXAMPLEKEY-Pf4Rw9Hd2Mk6Xs1N,FCA-regulated; annual attestation due each March
+NW-AC-1008,Thornbury Media,Kofi Mensah,k.mensah@thornburymedia.example,+44 117 496 0290,27400,2026-08-29,Bronze,EXAMPLEKEY-Tm6Bx2Qn9Ld4Rv7H,Smallest active account; self-serve renewal

@@ -129,6 +129,13 @@ def main() -> None:
     selected = render_sidebar(context)
     if selected != state.current_page:
         state.current_page = selected
+        # Write the URL BEFORE re-running.
+        #
+        # `sync_to_url()` lives at the end of this function, and `st.rerun()` never reaches it --
+        # so navigation, the one action that most needs recording, was the one action that never
+        # updated the address bar. A refresh then returned the operator to whichever page they had
+        # been on before the last navigation.
+        sync_to_url()
         # Re-run before drawing the body.
         #
         # The sidebar renders top to bottom, so the buttons ABOVE the one just clicked were already

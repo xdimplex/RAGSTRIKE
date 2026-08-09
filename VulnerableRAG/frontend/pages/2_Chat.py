@@ -62,60 +62,58 @@ if SESSION_KEY not in st.session_state:
 if TURNS_KEY not in st.session_state:
     st.session_state[TURNS_KEY] = []
 
+# REBUILD THE TRANSCRIPT AFTER A REFRESH.
+#
+# Streamlit throws session state away on F5, so the turns list came back empty while the session id
+# survived in the URL. The conversation was still on the server -- and still being replayed into
+# every subsequent prompt -- but the screen showed none of it, which reads as "my chat vanished".
+#
+# Only the question and answer are restored. The per-turn diagnostics (timings, chunk counts) are
+# not recorded server-side, and inventing them would be worse than omitting them.
+if st.session_state[SESSION_KEY] and not st.session_state[TURNS_KEY]:
+    with contextlib.suppress(ApiError):
+        recorded = api.session_history(st.session_state[SESSION_KEY]).get("turns", [])
+        restored: list[dict] = []
+        for turn in recorded:
+            if turn.get("role") == "user":
+                restored.append({"question": turn.get("content", ""), "answer": ""})
+            elif restored:
+                restored[-1]["answer"] = turn.get("content", "")
+        st.session_state[TURNS_KEY] = [
+            {
+                "question": t["question"],
+                "answer": t["answer"],
+                "elapsed_ms": 0,
+                "chunk_count": 0,
+                "model": "",
+                "sources": [],
+                "retrieved_chunks": [],
+            }
+            for t in restored
+            if t["answer"]
+        ]
+
 # ------------------------------------------------------------------------------------------------
 # Controls
 # ------------------------------------------------------------------------------------------------
+# QUERY OPTIONS REMOVED.
+#
+# The sidebar carried a retrieval-depth slider and three diagnostic checkboxes. None of them belong
+# in front of a person asking a question about a document: `top_k` is a retrieval-tuning knob whose
+# correct value is the one in `configs/config.yaml`, and the other three expose the assembled
+# prompt, the raw model output, and the retrieved chunks -- internal detail, and on the HARDENED lab
+# detail that should not be leaving the system at all.
+#
+# The values still exist as configuration; what is gone is the invitation for a user to change them.
+# The demo in GUIDE/ shows retrieval through the scanner, which is where that belongs.
+top_k = int(settings.retrieval.top_k)
+show_prompt = False
+show_raw = False
+show_retrieval = False
+
 with st.sidebar:
-    st.subheader("Query options")
-
-    # Every one of these is seeded from, and written back to, the URL. They used to reset on every
-    # browser refresh -- so an operator who set up an inspection view, refreshed, and asked their
-    # question again silently got a DIFFERENT view than the one they had configured.
-    top_k = st.slider(
-        "Passages to retrieve",
-        1,
-        20,
-        int(theme.preference("top_k", settings.retrieval.top_k)),
-        help="How many document passages are consulted for each answer.",
-    )
-    if top_k != theme.preference("top_k", settings.retrieval.top_k):
-        theme.remember("top_k", top_k)
-
-    show_prompt = st.checkbox(
-        "Show the assembled prompt",
-        value=bool(theme.preference("show_prompt", False)),
-        help="Returns the exact text sent to the model, including the system prompt.",
-    )
-    if show_prompt != bool(theme.preference("show_prompt", False)):
-        theme.remember("show_prompt", show_prompt)
-
-    show_raw = st.checkbox(
-        "Show raw model output",
-        value=bool(theme.preference("show_raw", False)),
-        help="Before post-processing. An injection is often visible here first.",
-    )
-    if show_raw != bool(theme.preference("show_raw", False)):
-        theme.remember("show_raw", show_raw)
-
-    # OFF BY DEFAULT, like the two above it.
-    #
-    # Every answer used to arrive with the retrieved filenames, page indices, per-chunk relevance
-    # scores, the elapsed milliseconds and the model name attached -- whether the reader wanted them
-    # or not. For a person asking a question about a document that is noise, and on the HARDENED lab
-    # it is internal detail leaving the system for no reason anyone asked for.
-    #
-    # It stays available because it is the single most useful thing to show an audience: the demo in
-    # GUIDE/00-WALKTHROUGH.md turns it on to make retrieval visible. Opt-in is the difference between
-    # a diagnostic an operator reaches for and a diagnostic every user is handed.
-    show_retrieval = st.checkbox(
-        "Show retrieval details",
-        value=bool(theme.preference("show_retrieval", False)),
-        help="Sources, chunks and relevance scores behind each answer. Off by default.",
-    )
-    if show_retrieval != bool(theme.preference("show_retrieval", False)):
-        theme.remember("show_retrieval", show_retrieval)
-
-    st.divider()
+    # No leading divider: the block it used to separate (Query options) is gone, so it drew a rule
+    # under nothing and opened an empty panel.
     st.caption(
         f"Session: `{st.session_state[SESSION_KEY] or 'new'}`\n\n"
         f"History is **unbounded** (weakness V8): every prior turn is replayed into every prompt."
@@ -200,13 +198,9 @@ if question:
 
 if not st.session_state[TURNS_KEY]:
     st.info(
-        "Ask something about your documents. Every answer arrives with the chunks that produced it, "
-        "so you can always check whether the model used the corpus — or something the corpus told "
-        "it to do."
+        "Ask a question about the documents you have uploaded. Answers are drawn from those "
+        "documents."
     )
 
 # The theme switch lives in the sidebar on every page, so an operator who lands on a theme they
 # cannot read never has to navigate somewhere else to fix it.
-with st.sidebar:
-    st.divider()
-    theme.render_theme_toggle()

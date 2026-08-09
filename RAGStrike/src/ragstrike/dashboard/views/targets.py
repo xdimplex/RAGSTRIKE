@@ -62,9 +62,16 @@ def _inventory(context: PageContext, targets: list[TargetView]) -> None:
 
     section(f"Configured targets ({len(targets)})")
     for target in targets:
-        html(target_card(context.palette, target))
-        if not target.is_local:
-            html(banner(context.palette, "warning", NON_LOCAL_WARNING))
+        # Card, buttons and probe result in ONE bordered container.
+        #
+        # As siblings, the card's border rendered across "Test connection" and "Select for scan".
+        # And the probe's answer went to the toast queue, which drains at the BOTTOM of the page --
+        # so clicking Test connection on the first of two targets printed its result far below the
+        # second one, with nothing tying the answer to the question.
+        with st.container(border=True):
+            html(target_card(context.palette, target, framed=False))
+            if not target.is_local:
+                html(banner(context.palette, "warning", NON_LOCAL_WARNING))
 
         # Only the two operations the API actually supports are offered.
         #
@@ -76,15 +83,25 @@ def _inventory(context: PageContext, targets: list[TargetView]) -> None:
         #
         # Offering a button that cannot work is worse than offering none: it reads as a broken
         # product rather than a deliberate boundary. The explanation below replaces them.
-        actions = st.columns(2)
-        if actions[0].button("Test connection", key=f"rs.tgt.verify.{target.id}"):
-            _verify(context, target)
-        if actions[1].button(
-            "Select for scan", key=f"rs.tgt.select.{target.id}", disabled=not target.enabled
-        ):
-            context.state.current_target = target.name
-            context.navigate("scan_center")
-            st.rerun()
+            actions = st.columns([1, 1, 2])
+            if actions[0].button(
+                "Test connection", key=f"rs.tgt.verify.{target.id}", width="stretch"
+            ):
+                _verify(context, target)
+            if actions[1].button(
+                "Select for scan",
+                key=f"rs.tgt.select.{target.id}",
+                disabled=not target.enabled,
+                width="stretch",
+            ):
+                context.state.current_target = target.name
+                context.navigate("scan_center")
+                st.rerun()
+
+            # The probe's answer, directly under the target it describes.
+            probe = st.session_state.get(f"rs.tgt.probe.{target.id}")
+            if probe:
+                html(banner(context.palette, probe["level"], probe["message"]))
 
 
 def _verify(context: PageContext, target: TargetView) -> None:
@@ -95,8 +112,12 @@ def _verify(context: PageContext, target: TargetView) -> None:
     except DashboardError as exc:
         html(render_exception(context.palette, exc))
         return
-    level = "success" if health.reachable else "warning"
-    context.notify(level, f"{target.name}: {health.detail}", f"{health.latency_ms} ms")
+    # Stored against the target, not queued as a toast. Toasts drain at the bottom of the page, so
+    # the answer to "is THIS target reachable?" appeared below every other target on screen.
+    st.session_state[f"rs.tgt.probe.{target.id}"] = {
+        "level": "success" if health.reachable else "warning",
+        "message": f"{target.name}: {health.detail}  ·  {health.latency_ms} ms",
+    }
     st.rerun()
 
 
@@ -120,7 +141,9 @@ def _how_to_add(context: PageContext) -> None:
         banner(
             context.palette,
             "info",
-            "Targets are declared in <code>configs/targets.yaml</code>, not through this page. "
+            # `banner()` escapes its message, so the <code> tags rendered as visible text rather than as
+        # formatting. Plain backticks read correctly either way and do not depend on the renderer.
+        "Targets are declared in configs/targets.yaml, not through this page. "
             "Each one carries an authorization record naming who approved the testing, so a target "
             "created over an unauthenticated local call would be authorising itself. "
             "Edit the file, then restart the API.",

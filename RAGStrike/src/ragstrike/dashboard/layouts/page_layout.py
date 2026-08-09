@@ -168,3 +168,30 @@ def columns_of(markup: list[str], *, per_row: int = 4) -> None:
         for column, fragment in zip(st.columns(len(chunk)), chunk, strict=False):
             with column:
                 _write(fragment)
+
+
+def grid_of(markup: list[str], *, per_row: int = 4) -> None:
+    """Lay cards out in a real CSS grid, so every card in a row is the same height.
+
+    WHY NOT ``columns_of``
+        Streamlit columns are independent blocks: each card is as tall as its own content, so a row
+        mixing a one-line card with a two-line one renders a staircase, and the next row starts
+        against the tallest card in the previous one. On the Subsystems panel -- eight cards whose
+        detail lines are naturally of different lengths -- that read as a broken layout.
+
+        One grid in one markdown block makes the rows genuine rows. ``align-items: stretch`` is the
+        default and is what equalises the heights; the cards opt in to filling their cell with
+        ``rs-card--grid``.
+
+    The trade-off is that the fragments must be self-contained HTML, which card components already
+    are. Anything containing a Streamlit widget still needs ``columns_of``.
+    """
+    if not markup:
+        return
+    cells = "".join(
+        fragment.replace('class="rs-card ', 'class="rs-card rs-card--grid ', 1) for fragment in markup
+    )
+    _write(
+        f'<div class="rs-grid" style="grid-template-columns: repeat({per_row}, minmax(0, 1fr));">'
+        f"{cells}</div>"
+    )

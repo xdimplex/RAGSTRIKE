@@ -152,7 +152,7 @@ def plugin_card(palette: Palette, plugin: PluginView, *, framed: bool = True) ->
     )
 
 
-def target_card(palette: Palette, target: TargetView) -> str:
+def target_card(palette: Palette, target: TargetView, *, framed: bool = True) -> str:
     """A configured target, with its authorization record and reachability.
 
     The authorization block is shown, not summarized away: a target without one cannot be scanned,
@@ -198,7 +198,7 @@ def target_card(palette: Palette, target: TargetView) -> str:
     return tag(
         "div",
         head + detail + foot,
-        class_="rs-card rs-card--accented",
+        class_="rs-card rs-card--accented" if framed else "rs-card rs-card--bare",
         style=style({"border-left-color": accent}),
     )
 
@@ -210,7 +210,11 @@ def report_card(palette: Palette, report: ReportView, *, framed: bool = True) ->
     """
     head = tag(
         "div",
-        tag("span", escape(report.id), class_="rs-card__title")
+        # The SCAN'S NAME as the heading, not the report's hex id. A report is the write-up of a
+        # scan, and "vulnerable-rag standard sweep · PDF" is how an operator refers to one; the id
+        # is a database key that happens to be visible. It is still shown, once, in the detail rows
+        # below, where it is needed for correlating with a file on disk.
+        tag("span", escape(report.label), class_="rs-card__title")
         + tag(
             "div",
             join(
@@ -226,7 +230,8 @@ def report_card(palette: Palette, report: ReportView, *, framed: bool = True) ->
     )
     detail = key_values(
         [
-            ("Scan", report.scan_id),
+            ("Report id", report.id),
+            ("Scan", report.scan_name or report.scan_id),
             ("Target", report.target),
             ("Generated", report.generated_at),
             ("Findings", str(report.findings_count) if report.findings_count else ""),

@@ -37,11 +37,24 @@ def test_a_renamed_executable_is_refused_before_the_parser(api_client: TestClien
     assert response.json()["error"]["code"] == "invalid_document"
 
 
-def test_a_text_file_is_refused_on_its_extension(api_client: TestClient) -> None:
-    response = upload(api_client, "notes.txt", b"hello", "text/plain")
+def test_an_unsupported_extension_is_refused(api_client: TestClient) -> None:
+    """`.txt` is on the allowlist now; the boundary is still enforced, one format along."""
+    response = upload(api_client, "payload.exe", b"MZ\x90\x00", "application/octet-stream")
 
     assert response.status_code == 415
     assert response.json()["error"]["code"] == "unsupported_file_type"
+
+
+def test_a_binary_renamed_to_txt_is_still_refused(api_client: TestClient) -> None:
+    """The reason text formats needed their OWN check rather than a bypass.
+
+    Plain text has no magic bytes, so the signature check cannot apply -- but "no signature" must not
+    become "no check", or the allowlist becomes bypassable by renaming a file.
+    """
+    response = upload(api_client, "payload.txt", b"MZ\x90\x00\x00\x00binary", "text/plain")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] in ("invalid_document", "invalid_request")
 
 
 def test_an_empty_upload_is_refused(api_client: TestClient) -> None:
@@ -158,7 +171,9 @@ def test_a_refused_upload_leaves_no_trace(api_client: TestClient, settings) -> N
 
 def test_every_upload_refusal_uses_the_shared_error_envelope(api_client: TestClient) -> None:
     for name, content, content_type in (
-        ("notes.txt", b"x", "text/plain"),
+        # `.txt` is accepted now, so the refusal cases are an unsupported extension, an empty
+        # file, and content that does not match the type it claims.
+        ("payload.exe", b"MZ\x90\x00", "application/octet-stream"),
         ("empty.pdf", b"", "application/pdf"),
         ("fake.pdf", b"MZ\x90\x00", "application/pdf"),
     ):

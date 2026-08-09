@@ -23,6 +23,12 @@ from ragstrike.dashboard.context import PageContext
 from ragstrike.dashboard.layouts.page_layout import html, page_header, section
 from ragstrike.dashboard.services.errors import DashboardError
 from ragstrike.dashboard.services.scan_service import ScanRequest, should_poll
+from ragstrike.dashboard.state.persistence import (
+    durable_multi,
+    durable_radio,
+    durable_select,
+    durable_text,
+)
 from ragstrike.dashboard.state.store import ScanHandle
 from ragstrike.dashboard.widgets.tables import findings_rows, render_table
 
@@ -67,58 +73,73 @@ def _launcher(context: PageContext) -> None:
 
     names = [target.name for target in targets]
     default_name = context.state.current_target or context.config.default_target
-    index = names.index(default_name) if default_name in names else 0
 
     left, right = st.columns([3, 2])
 
     with left:
         section("Target")
-        target_name = st.selectbox("Target", names, index=index, key="rs.scan.target")
+        # `durable_*` throughout this page: everything below is a choice the operator made, and all
+        # of it used to be lost on a section change or an F5 -- including the plugin selection, which
+        # is the most laborious thing on the page to rebuild.
+        target_name = durable_select("Target", names, "rs.scan.target", default=default_name)
         context.state.current_target = str(target_name)
         selected_target = next(t for t in targets if t.name == target_name)
         st.caption(f"{selected_target.url} · adapter {selected_target.adapter}")
 
         section("Configuration")
-        scan_name = st.text_input("Scan name", value=f"{target_name} scan", key="rs.scan.name")
+        scan_name = durable_text("Scan name", "rs.scan.name", default=f"{target_name} scan")
         profile_ids = [profile.id for profile in profiles] or ["standard"]
-        profile = st.radio(
-            "Profile",
-            profile_ids,
-            horizontal=True,
-            key="rs.scan.profile",
-            index=profile_ids.index("standard") if "standard" in profile_ids else 0,
+        profile = durable_radio(
+            "Profile", profile_ids, "rs.scan.profile", default="standard", horizontal=True
         )
         chosen_profile = next((p for p in profiles if p.id == profile), None)
         if chosen_profile and chosen_profile.description:
             st.caption(chosen_profile.description)
 
         section("Plugins")
-        categories = st.multiselect(
+        categories = durable_multi(
             "Categories",
             inventory.categories,
+            "rs.scan.categories",
             default=list(inventory.categories),
-            key="rs.scan.categories",
             help="Narrowing categories narrows the plugin list below.",
         )
         candidates = [
             plugin for plugin in inventory.active if not categories or plugin.category in categories
         ]
-        slugs = st.multiselect(
+        slugs = durable_multi(
             "Individual plugins",
             [plugin.slug for plugin in candidates],
+            "rs.scan.plugins",
             default=[plugin.slug for plugin in candidates if plugin.enabled],
-            key="rs.scan.plugins",
         )
         context.state.loaded_plugins = list(slugs)
 
     with right:
-        _plan_summary(context, selected_target, chosen_profile, len(slugs))
+        # The payloads of the packs the operator actually ticked, so the plan counts the cases that
+        # will run rather than a constant multiplied by a plugin count.
+        chosen = [plugin for plugin in inventory.active if plugin.slug in set(slugs)]
+        _plan_summary(
+            context,
+            selected_target,
+            chosen_profile,
+            len(slugs),
+            sum(plugin.payload_count for plugin in chosen),
+        )
+        # Space between the plan panel and the confirmation. Flush against the panel's border, the
+        # checkbox read as the summary's last line rather than as the one thing on this page the
+        # operator has to consciously agree to.
+        html('<div class="rs-confirmpad"></div>')
+        # NOT durable, and that is deliberate. Authorization is confirmed for the scan being
+        # started, not stored as a preference -- a ticked box restored from a bookmark would be the
+        # tool asserting consent the operator did not give in this session.
         authorized = st.checkbox(
             "I confirm I am authorized to test this target.",
             key="rs.scan.authorized",
             help="RAGStrike also enforces the target's own authorization record; this does not "
             "override it.",
         )
+        html('<div class="rs-startpad"></div>')
         request = ScanRequest(
             target=str(target_name),
             profile=str(profile),
@@ -137,14 +158,20 @@ def _launcher(context: PageContext) -> None:
             _start(context, request)
 
 
-def _plan_summary(context: PageContext, target: object, profile: object, plugin_count: int) -> None:
+def _plan_summary(
+    context: PageContext,
+    target: object,
+    profile: object,
+    plugin_count: int,
+    payloads: int = 0,
+) -> None:
     from ragstrike.dashboard.components.cards import summary_card
     from ragstrike.dashboard.components.progress import format_duration
     from ragstrike.dashboard.services.scan_service import ScanProfile
 
     section("Plan")
     resolved = profile if isinstance(profile, ScanProfile) else ScanProfile(id="standard")
-    cases, seconds = context.services.scans.estimate(resolved, plugin_count)
+    cases, seconds = context.services.scans.estimate(resolved, plugin_count, payloads)
     health = getattr(target, "health", None)
     capabilities = ", ".join(getattr(health, "capabilities", ()) or ()) or "not probed"
     html(
@@ -156,7 +183,10 @@ def _plan_summary(context: PageContext, target: object, profile: object, plugin_
                 "Duration": f"~{format_duration(seconds)}",
                 "Capabilities": capabilities,
             },
-            footer="Estimates, not predictions: cases scale with the plugins you selected.",
+            footer=(
+                "Cases are the payloads the selected packs will send. The duration is an estimate "
+                "at 0.55s per case; a slow model makes it longer."
+            ),
         )
     )
 
@@ -170,7 +200,9 @@ def _start(context: PageContext, request: ScanRequest) -> None:
         html(render_exception(context.palette, exc))
         return
 
-    context.state.current_scan = ScanHandle(scan_id=scan_id, target=request.target, state="queued")
+    context.state.current_scan = ScanHandle(
+        scan_id=scan_id, target=request.target, name=request.name, state="queued"
+    )
     context.notify("success", f"Scan {scan_id} started against {request.target}.")
     st.rerun()
 
@@ -195,24 +227,38 @@ def _live(context: PageContext, handle: ScanHandle) -> None:
     context.state.current_scan = ScanHandle(
         scan_id=handle.scan_id,
         target=handle.target,
+        name=handle.name,
         state=progress.state,
         started_at=handle.started_at,
     )
 
-    section(f"{handle.scan_id} — {handle.target}")
-    html(scan_progress(context.palette, progress))
+    # Progress panel and its controls in ONE container, with the log below it.
+    #
+    # They were three siblings -- an HTML progress card, a bare button row, and the log expander --
+    # and each one's own margin was all that separated it from the next. "New scan" and "View in
+    # history" ended up touching the card above and the log box below at the same time.
+    #
+    # The scan's NAME heads the panel; the id is in the panel body. A section heading made of 32
+    # characters of hex tells the operator nothing they can use.
+    section(handle.name or f"{handle.target} — {handle.scan_id[:8]}")
+    with st.container(border=True):
+        html(scan_progress(context.palette, progress))
 
-    controls = st.columns(3)
-    if not progress.finished and controls[0].button(
-        "Cancel scan", key="rs.scan.cancel", type="secondary"
-    ):
-        _cancel(context, handle.scan_id)
-    if progress.finished and controls[0].button("New scan", key="rs.scan.new", type="primary"):
-        context.state.current_scan = None
-        st.rerun()
-    if progress.finished and controls[1].button("View in history", key="rs.scan.history"):
-        context.navigate("scan_history")
-        st.rerun()
+        controls = st.columns([1, 1, 2])
+        if not progress.finished and controls[0].button(
+            "Cancel scan", key="rs.scan.cancel", type="secondary", width="stretch"
+        ):
+            _cancel(context, handle.scan_id)
+        if progress.finished and controls[0].button(
+            "New scan", key="rs.scan.new", type="primary", width="stretch"
+        ):
+            context.state.current_scan = None
+            st.rerun()
+        if progress.finished and controls[1].button(
+            "View in history", key="rs.scan.history", width="stretch"
+        ):
+            context.navigate("scan_history")
+            st.rerun()
 
     _logs(context, handle.scan_id)
 

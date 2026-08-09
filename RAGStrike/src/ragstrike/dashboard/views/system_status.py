@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from ragstrike.dashboard.components.cards import status_card, summary_card
 from ragstrike.dashboard.context import PageContext
-from ragstrike.dashboard.layouts.page_layout import columns_of, html, page_header, section
+from ragstrike.dashboard.layouts.page_layout import grid_of, html, page_header, section
 from ragstrike.dashboard.services.errors import DashboardError
 from ragstrike.dashboard.services.models import SystemStatus
 
@@ -31,13 +31,8 @@ OVERALL_MESSAGE = {
 
 
 def render(context: PageContext) -> None:
-    page_header("System Status", "Subsystem health, versions, and host resources.")
+    page_header("System Status", "Subsystem health and versions.")
 
-    import streamlit as st
-
-    if st.button("Refresh", key="rs.status.refresh"):
-        context.state.advance_poll()
-        st.rerun()
 
     try:
         status = context.services.status.status()
@@ -50,6 +45,7 @@ def render(context: PageContext) -> None:
     _overall(status)
     _components(context, status)
     _versions(context, status)
+    _refresh(context)
 
 
 def _overall(status: SystemStatus) -> None:
@@ -63,7 +59,7 @@ def _overall(status: SystemStatus) -> None:
 
 def _components(context: PageContext, status: SystemStatus) -> None:
     section("Subsystems")
-    columns_of(
+    grid_of(
         [
             status_card(
                 context.palette,
@@ -101,6 +97,22 @@ def _components(context: PageContext, status: SystemStatus) -> None:
 #   exactly what the panel's own hint said before it was deleted.
 #
 # The health grid above still reports every subsystem, which is what this page is for.
+
+
+def _refresh(context: PageContext) -> None:
+    """Re-poll the backend.
+
+    AT THE BOTTOM, DELIBERATELY. It was the first element on the page, which put it under the
+    Deploy bar and, more to the point, offered "check again" before the reader had seen anything to
+    re-check. A refresh belongs after the state it refreshes: you read the subsystems, then decide
+    whether to ask again.
+    """
+    import streamlit as st
+
+    st.divider()
+    if st.button("Re-check subsystems", key="rs.status.refresh"):
+        context.state.advance_poll()
+        st.rerun()
 
 
 def _versions(context: PageContext, status: SystemStatus) -> None:

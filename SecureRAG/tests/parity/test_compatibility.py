@@ -51,6 +51,16 @@ CONTRACT_ROUTES: set[tuple[str, str]] = {
     ("DELETE", "/documents/{document_id}"),
     ("POST", "/chat"),
     ("POST", "/chat/reset"),
+    # Added to BOTH labs together, which is the only way this list may grow.
+    #
+    # Streamlit discards session state on a browser refresh, so the chat page came back holding a
+    # valid session id and an empty transcript -- while the backend went on replaying those same
+    # turns into every new prompt. The conversation existed; only the client's copy was gone. This
+    # lets the page rebuild what it is already part of.
+    #
+    # Symmetry is the point of this file: an endpoint on one lab and not the other would show up in
+    # a scan as a difference that has nothing to do with security posture.
+    ("GET", "/chat/session/{session_id}"),
 }
 
 #: The five the brief names explicitly as unchangeable.

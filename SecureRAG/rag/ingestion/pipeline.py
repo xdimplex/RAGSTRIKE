@@ -20,12 +20,21 @@ from rag.config import Settings
 from rag.errors import DocumentTooLargeError, UnsupportedFileTypeError
 from rag.ingestion.chunker import Chunker
 from rag.ingestion.loaders.pdf_loader import load_pdf
+from rag.ingestion.loaders.text_loader import TEXT_SUFFIXES, load_text
 from rag.models import Chunk, Document
 from rag.policy.chain import SecurityPolicyChain
 from rag.policy.hooks import ChunkContext, IngestContext
 from vectorstore.collections import VectorStore
 
 log = logging.getLogger(__name__)
+
+#: Recorded content type per accepted suffix.
+_CONTENT_TYPES: dict[str, str] = {
+    "pdf": "application/pdf",
+    "txt": "text/plain",
+    "md": "text/markdown",
+    "csv": "text/csv",
+}
 
 #: Anything outside this set is replaced when building a stored filename.
 _SAFE_FILENAME = re.compile(r"[^A-Za-z0-9._-]+")
@@ -89,7 +98,12 @@ class IngestionPipeline:
         sha256: str | None = None,
     ) -> tuple[Document, list[Chunk]]:
         """Ingest a PDF already on disk. Used by ``scripts/seed_corpus.py``."""
-        loaded = load_pdf(path)
+        # The loader is chosen by suffix and everything after it is identical -- chunking, the
+        # `on_ingest` hook, embedding, retrieval. A text file and a PDF differ in how bytes become
+        # characters and in nothing else, so they must not take separate paths: the moment they do,
+        # every security control has to be written twice and one copy drifts.
+        suffix = path.suffix.lower().lstrip(".")
+        loaded = load_text(path) if suffix in TEXT_SUFFIXES else load_pdf(path)
 
         # --- hook: on_ingest -------------------------------------------------------------
         # Where sanitization would happen. VulnerableRAG's chain is empty, so the extracted text --
@@ -119,7 +133,10 @@ class IngestionPipeline:
             id=document_id,
             original_filename=original_filename,
             stored_filename=path.name,
-            content_type="application/pdf",
+            # Derived from the suffix, not hardcoded. Every document used to be recorded as
+            # `application/pdf`, which was harmlessly true while PDF was the only accepted format
+            # and became a false statement in the stored record the moment text files were.
+            content_type=_CONTENT_TYPES.get(suffix, "application/octet-stream"),
             size_bytes=size_bytes if size_bytes is not None else path.stat().st_size,
             page_count=loaded.page_count,
             chunk_count=len(chunks),

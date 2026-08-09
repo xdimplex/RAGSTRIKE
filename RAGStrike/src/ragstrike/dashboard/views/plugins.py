@@ -21,12 +21,13 @@ from collections.abc import Sequence
 
 from ragstrike.dashboard.components.cards import plugin_card, summary_card
 from ragstrike.dashboard.components.controls import facet_options, filter_panel
-from ragstrike.dashboard.components.feedback import empty_state, render_exception
+from ragstrike.dashboard.components.feedback import banner, empty_state, render_exception
 from ragstrike.dashboard.context import PageContext
 from ragstrike.dashboard.layouts.page_layout import html, page_header, section
 from ragstrike.dashboard.services.errors import DashboardError
 from ragstrike.dashboard.services.filters import FilterState, apply_filters
 from ragstrike.dashboard.services.models import PluginView
+from ragstrike.dashboard.state.persistence import durable_text
 from ragstrike.dashboard.widgets.tables import plugin_rows, render_table
 
 PAGE_ID = "plugins"
@@ -62,9 +63,11 @@ def _toolbar(context: PageContext, plugins: Sequence[PluginView]) -> None:
 
     columns = st.columns([3, 1])
     with columns[0]:
-        query = st.text_input(
+        # `durable_text`, like every other search box: a plain one is discarded the moment the
+        # operator looks at another section.
+        query = durable_text(
             "Search plugins",
-            key="rs.plugins.search",
+            "rs.plugins.search",
             placeholder="Filter by name, slug, category, or description...",
             label_visibility="collapsed",
         )
@@ -145,6 +148,13 @@ def _cards(context: PageContext, plugins: list[PluginView]) -> None:
             with actions[2]:
                 _metadata(context, plugin)
 
+            # The verdict, directly beneath the buttons that produced it.
+            outcome = st.session_state.get(f"rs.plg.result.{plugin.slug}")
+            if outcome:
+                html(banner(context.palette, outcome["level"], outcome["message"]))
+                if outcome.get("detail"):
+                    st.caption(outcome["detail"])
+
 
 def _metadata(context: PageContext, plugin: PluginView) -> None:
     import streamlit as st
@@ -167,7 +177,9 @@ def _metadata(context: PageContext, plugin: PluginView) -> None:
                     "Severity": detail.severity,
                     "Requires": ", ".join(detail.requires),
                     "Permissions": ", ".join(detail.permissions) or "none",
-                    "Attacks": str(detail.attack_count),
+                    # "Attacks" is gone. One pack IS one attack class, so the row could only ever
+                    # say 1 or -- as it did against the real engine, which has no such counter -- 0.
+                    # A metadata panel asserting a pack contains zero attacks is worse than silence.
                     "Payloads": str(detail.payload_count),
                     "Description": detail.description,
                 },
@@ -197,14 +209,18 @@ def _validate(context: PageContext, plugin: PluginView) -> None:
         html(render_exception(context.palette, exc))
         return
 
-    if report.valid:
-        context.notify("success", f"{plugin.slug} passed every validation rule.")
-    else:
-        context.notify(
-            "error",
-            f"{plugin.slug} failed validation.",
-            "; ".join(f"{check.name}: {check.detail}" for check in report.failures),
-        )
+    # Stored against the pack, not queued as a toast. Toasts drain at the BOTTOM of the page, so
+    # validating the first of nine packs printed its verdict below the other eight -- with nothing
+    # connecting the answer to the question. The result belongs under the button that asked for it.
+    st.session_state[f"rs.plg.result.{plugin.slug}"] = {
+        "level": "success" if report.valid else "error",
+        "message": (
+            f"{plugin.slug} passed every validation rule."
+            if report.valid
+            else f"{plugin.slug} failed validation."
+        ),
+        "detail": "; ".join(f"{check.name}: {check.detail}" for check in report.failures),
+    }
     st.rerun()
 
 

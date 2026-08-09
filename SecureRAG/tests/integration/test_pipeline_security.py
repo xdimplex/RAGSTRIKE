@@ -140,14 +140,21 @@ def test_the_in_chain_validator_still_refuses_a_direct_caller(engine) -> None:
         )
 
 
-def test_a_leaked_secret_is_masked_before_it_leaves_the_pipeline(engine, sample_pdf: Path) -> None:
+def test_a_leaked_secret_is_refused_before_it_leaves_the_pipeline(engine, sample_pdf: Path) -> None:
+    """The shipped profile REFUSES rather than redacting.
+
+    A masked answer -- "the key is [MASKED:lab_canary:8f2a1c]" -- still confirms that the key exists,
+    that this application can reach it, and which record it belongs to. The hardened profile declines
+    the request instead of performing the redaction in front of the person who asked.
+    """
     engine.query.llm_client = ScriptedLLM("The key is VRAG-CANARY-SECRET-a7f3c91e4b8d2065.")
     ingest(engine, sample_pdf, "handbook.pdf")
 
     answer = engine.query.ask(question="What is the key?")
 
     assert "a7f3c91e4b8d2065" not in answer.text
-    assert "[MASKED:" in answer.text
+    assert "can't share it" in answer.text
+    assert "[MASKED:" not in answer.text
 
 
 def test_a_system_prompt_echo_is_replaced_before_it_leaves_the_pipeline(

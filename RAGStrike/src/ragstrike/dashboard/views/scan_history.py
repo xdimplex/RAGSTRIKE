@@ -23,6 +23,7 @@ from ragstrike.dashboard.layouts.page_layout import columns_of, html, page_heade
 from ragstrike.dashboard.services.errors import DashboardError
 from ragstrike.dashboard.services.filters import FilterState, apply_filters, sort_items
 from ragstrike.dashboard.services.models import ScanView
+from ragstrike.dashboard.state.persistence import durable_check, durable_select, durable_text
 from ragstrike.dashboard.widgets.tables import findings_rows, render_table, scan_rows
 
 PAGE_ID = "scan_history"
@@ -88,18 +89,20 @@ def render(context: PageContext) -> None:
 def _toolbar(context: PageContext, scans: list[ScanView]) -> list[ScanView]:
     import streamlit as st
 
+    # `durable_*` and not the plain widgets: Streamlit discards a widget's state when the widget is
+    # not rendered, so navigating to another section and back reset every control on this page.
     columns = st.columns([3, 1, 1])
     with columns[0]:
-        query = st.text_input(
+        query = durable_text(
             "Search scans",
-            key="rs.hist.search",
+            "rs.hist.search",
             placeholder="Search by scan id, name, target, or profile...",
             label_visibility="collapsed",
         )
     with columns[1]:
-        sort_key = st.selectbox("Sort by", ("date", "risk", "target", "name"), key="rs.hist.sort")
+        sort_key = durable_select("Sort by", ("date", "risk", "target", "name"), "rs.hist.sort")
     with columns[2]:
-        descending = st.checkbox("Descending", value=True, key="rs.hist.desc")
+        descending = durable_check("Descending", "rs.hist.desc", default=True)
 
     stored = context.state.filters_for(PAGE_ID)
     previous = stored.get("state")
@@ -121,18 +124,14 @@ def _detail(context: PageContext, scans: list[ScanView]) -> None:
     import streamlit as st
 
     section("Detail")
-    # Readable labels as the OPTIONS, not via `format_func`.
+    # Readable labels as the OPTIONS, not via `format_func`, and uniqueness ENFORCED not assumed.
     #
     # `format_func` was the obvious way to keep ids as values and show names, and it silently broke
     # selection: with a `key`, the replayed choice is resolved through the FORMATTED label, so the
-    # stored id stopped matching and a different scan was selected. That is not cosmetic -- "Replay
-    # scan" would then have replayed a scan the operator never picked.
+    # stored id stopped matching and a different scan was selected. "Replay scan" would then have
+    # replayed a scan the operator never picked.
     #
-    # Labels carry the id suffix so two scans of the same target and profile stay distinguishable,
-    # and the map back to the id is explicit.
-    # Uniqueness is ENFORCED, not assumed.
-    #
-    # The first attempt suffixed `scan.id[:8]`, which is unique for a 32-character hex id and not
+    # The replacement suffixed `scan.id[:8]`, which is unique for a 32-character hex id and not
     # for the short ids the demo transport uses -- "scan-0006"[:8] is "scan-000", identical for
     # every scan in the list. Labels collided, later scans overwrote earlier ones in the map, and
     # picking the first entry returned a scan the operator had not chosen. "Replay scan" would then
@@ -149,7 +148,7 @@ def _detail(context: PageContext, scans: list[ScanView]) -> None:
             label = f"{label}  ·  {scan_item.id}"
         by_label[label] = scan_item
 
-    chosen_label = st.selectbox("Scan", list(by_label), key="rs.hist.selected")
+    chosen_label = durable_select("Scan", list(by_label), "rs.hist.selected")
     scan = by_label[str(chosen_label)]
 
     # The summary and its actions in ONE bordered container.
@@ -195,14 +194,26 @@ def _detail(context: PageContext, scans: list[ScanView]) -> None:
 def _actions(context: PageContext, scan: ScanView) -> None:
     import streamlit as st
 
-    actions = st.columns(3)
+    # Replay and Open in Reports sit ON the format selector's line, not under the card.
+    #
+    # They used to be three equal columns, so the two plain buttons rendered at the TOP of their
+    # cells while the format cell was a label-plus-dropdown -- the buttons ended up level with the
+    # selector's label and read as though they were part of it.
+    #
+    # Giving the format column its own width and pushing the buttons down by the height of a label
+    # lines all three up on the control row, with space between them.
+    actions = st.columns([2, 1, 1, 1])
     with actions[0]:
         _generate_report(context, scan)
-    if actions[1].button("Replay scan", key=f"rs.hist.replay.{scan.id}"):
-        _replay(context, scan)
-    if actions[2].button("Open in Reports", key=f"rs.hist.reports.{scan.id}"):
-        context.navigate("reports")
-        st.rerun()
+    with actions[1]:
+        st.markdown('<div class="rs-actionpad"></div>', unsafe_allow_html=True)
+        if st.button("Replay scan", key=f"rs.hist.replay.{scan.id}", width="stretch"):
+            _replay(context, scan)
+    with actions[2]:
+        st.markdown('<div class="rs-actionpad"></div>', unsafe_allow_html=True)
+        if st.button("Open in Reports", key=f"rs.hist.reports.{scan.id}", width="stretch"):
+            context.navigate("reports")
+            st.rerun()
 
 
 def _generate_report(context: PageContext, scan: ScanView) -> None:

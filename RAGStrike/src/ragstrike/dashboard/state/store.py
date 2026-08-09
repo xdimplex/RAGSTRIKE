@@ -44,6 +44,9 @@ class ScanHandle:
 
     scan_id: str
     target: str = ""
+    #: The operator's label for this run, so the live panel can head itself with something readable
+    #: instead of 32 characters of hex.
+    name: str = ""
     state: str = "queued"
     started_at: str = ""
 

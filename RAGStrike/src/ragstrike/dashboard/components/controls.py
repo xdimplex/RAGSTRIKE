@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ragstrike.dashboard.services.filters import FilterState
+from ragstrike.dashboard.state.persistence import durable_multi, durable_slider, durable_text
 
 #: Which facets a page offers. Not every page has every facet -- a plugin list has no date -- and
 #: rendering an inert control is worse than rendering none.
@@ -99,7 +100,6 @@ def filter_panel(
     filter mutated in place is a filter that can be observed half-applied by whatever renders above
     the panel.
     """
-    import streamlit as st
 
     text = state.text
     severities = state.severities
@@ -112,38 +112,44 @@ def filter_panel(
     min_risk = state.min_risk
     max_risk = state.max_risk
 
+    # EVERY control here is a `durable_*` one.
+    #
+    # These are the filters an operator sets up and then leaves in place while they work. As plain
+    # widgets they were destroyed the moment the section changed -- Streamlit discards a widget's
+    # state on any run that does not render it -- so coming back to Scan History showed an unfiltered
+    # table that the panel still claimed was filtered. A refresh lost them as well.
     if "severity" in facets and options.severities:
         severities = tuple(
-            st.multiselect(
-                "Severity", options.severities, default=list(severities), key=f"{key}.sev"
+            durable_multi(
+                "Severity", options.severities, f"{key}.sev", default=list(severities)
             )
         )
     if "status" in facets and options.statuses:
         statuses = tuple(
-            st.multiselect("Status", options.statuses, default=list(statuses), key=f"{key}.status")
+            durable_multi("Status", options.statuses, f"{key}.status", default=list(statuses))
         )
     if "category" in facets and options.categories:
         categories = tuple(
-            st.multiselect(
-                "Category", options.categories, default=list(categories), key=f"{key}.cat"
-            )
+            durable_multi("Category", options.categories, f"{key}.cat", default=list(categories))
         )
     if "plugin" in facets and options.plugins:
         plugins = tuple(
-            st.multiselect("Plugin", options.plugins, default=list(plugins), key=f"{key}.plugin")
+            durable_multi("Plugin", options.plugins, f"{key}.plugin", default=list(plugins))
         )
     if "target" in facets and options.targets:
         targets = tuple(
-            st.multiselect("Target", options.targets, default=list(targets), key=f"{key}.target")
+            durable_multi("Target", options.targets, f"{key}.target", default=list(targets))
         )
     if "date" in facets:
-        date_from = str(
-            st.text_input("From (YYYY-MM-DD)", value=date_from, key=f"{key}.from") or ""
-        )
-        date_to = str(st.text_input("To (YYYY-MM-DD)", value=date_to, key=f"{key}.to") or "")
+        date_from = durable_text("From (YYYY-MM-DD)", f"{key}.from")
+        date_to = durable_text("To (YYYY-MM-DD)", f"{key}.to")
     if "risk" in facets:
-        low, high = st.slider(
-            "Risk score", 0.0, 100.0, (float(min_risk), float(max_risk)), key=f"{key}.risk"
+        low, high = durable_slider(
+            "Risk score",
+            f"{key}.risk",
+            default=(float(min_risk), float(max_risk)),
+            min_value=0.0,
+            max_value=100.0,
         )
         min_risk, max_risk = float(low), float(high)
 

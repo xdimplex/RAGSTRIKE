@@ -102,8 +102,21 @@ def test_the_size_check_reports_the_actual_size() -> None:
 
 
 def test_a_disallowed_extension_is_refused() -> None:
+    """`.txt` joined the allowlist; `.exe` did not, and never should."""
     with pytest.raises(UnsupportedFileTypeError):
-        validator().validate(filename="notes.txt", content=PDF)
+        validator().validate(filename="payload.exe", content=PDF)
+
+
+def test_a_text_file_is_accepted() -> None:
+    assert validator().validate(filename="notes.txt", content=b"Refunds take 14 days.")
+
+
+def test_a_binary_file_renamed_to_text_is_refused() -> None:
+    """A NUL byte does not occur in a UTF-8 document and does occur in every binary format."""
+    from rag.errors import InvalidDocumentError
+
+    with pytest.raises(InvalidDocumentError):
+        validator().validate(filename="payload.txt", content=b"MZ\x90\x00\x00binary")
 
 
 def test_a_file_with_no_extension_is_refused() -> None:

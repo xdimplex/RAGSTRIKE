@@ -538,14 +538,24 @@ def test_every_named_subsystem_gets_a_row_even_when_the_backend_omits_it() -> No
     assert {c.status for c in status.components} == {"ok", "unknown"}
 
 
-def test_the_eight_subsystems_the_brief_names_are_all_present() -> None:
+def test_only_ragstrikes_own_subsystems_are_listed() -> None:
+    """ChromaDB was dropped, deliberately.
+
+    It rendered a permanent row reading "not used by the scanner; the lab targets own the vector
+    store" -- a health row for a component this application does not use. A status board is a list
+    of things that can break YOUR tool, and a row that can only ever say "not mine" teaches the
+    reader to skim the board.
+
+    The brief named eight; the operator asked for the scanner's own. The labs have their own System
+    Status pages, and ChromaDB belongs on those.
+    """
     labels = {label for _, label in SUBSYSTEMS}
 
+    assert "ChromaDB" not in labels
     assert labels == {
         "FastAPI",
         "Ollama",
         "SQLite",
-        "ChromaDB",
         "Analyzer",
         "Reporting Engine",
         "Plugin Framework",

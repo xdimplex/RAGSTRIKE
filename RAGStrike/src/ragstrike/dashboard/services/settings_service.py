@@ -26,7 +26,6 @@ from ragstrike.dashboard.config import (
     LOG_LEVELS,
     REPORT_FORMATS,
     SENSITIVE_KEYS,
-    THEMES,
     DashboardConfig,
 )
 from ragstrike.dashboard.services.transport import BackendTransport
@@ -77,7 +76,9 @@ class SettingsOption:
 #: The editable surface. Adding a preference is an entry here plus a field on
 #: :class:`~ragstrike.dashboard.config.DashboardConfig` -- the settings page itself does not change.
 OPTIONS: tuple[SettingsOption, ...] = (
-    SettingsOption("theme", "Theme", "choice", THEMES, "Applies immediately to this session."),
+    # NO THEME OPTION. The console is always dark -- see `build_context`. The sidebar toggle was
+    # removed for the same reason, and leaving a second control here would have re-created the
+    # problem the removal was for: a page that can be put into a half-styled state.
     SettingsOption(
         "language",
         "Language",

@@ -26,6 +26,8 @@ from backend.schemas.chat import (
     ResetSessionRequest,
     ResetSessionResponse,
     RetrievedChunkModel,
+    SessionHistoryResponse,
+    SessionTurn,
 )
 from rag.engine import Engine
 from rag.errors import InvalidRequestError
@@ -81,3 +83,34 @@ async def reset_session(
 ) -> ResetSessionResponse:
     engine.memory.reset(request.session_id)
     return ResetSessionResponse(session_id=request.session_id, reset=True)
+
+
+@router.get(
+    "/chat/session/{session_id}",
+    response_model=SessionHistoryResponse,
+    summary="Replay one conversation",
+)
+async def session_history(
+    engine: Annotated[Engine, Depends(get_engine)],
+    session_id: str,
+) -> SessionHistoryResponse:
+    """Every turn recorded for a session, oldest first.
+
+    WHY THIS EXISTS
+        The chat page kept its conversation in Streamlit's session state and the session ID in the
+        URL. Streamlit discards session state on a browser refresh, so F5 left the operator holding
+        a valid session ID pointing at a conversation the UI could no longer display -- the history
+        vanished from the screen while still existing on the server and still being replayed into
+        every subsequent prompt. The transcript was not lost; only the client's copy of it was.
+
+        With this route the page can rebuild what it is already part of.
+
+    READ-ONLY, and it returns what the model was actually shown -- the same turns
+    ``SessionMemory.history`` replays into the next prompt. A "history" that disagreed with the
+    prompt would be a second, subtly wrong record of the conversation.
+    """
+    turns = engine.memory.history(session_id)
+    return SessionHistoryResponse(
+        session_id=session_id,
+        turns=[SessionTurn(role=str(t.get("role", "")), content=str(t.get("content", ""))) for t in turns],
+    )

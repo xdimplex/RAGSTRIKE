@@ -157,6 +157,3 @@ if st.button("Retrieve via GET /health?include_prompt=true"):
 
 # The theme switch lives in the sidebar on every page, so an operator who lands on a theme they
 # cannot read never has to navigate somewhere else to fix it.
-with st.sidebar:
-    st.divider()
-    theme.render_theme_toggle()

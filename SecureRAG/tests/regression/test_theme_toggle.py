@@ -1,24 +1,22 @@
-"""The dark/light toggle must not crash the page it is drawn on.
+"""The lab UI is LIGHT, always, and has no theme control.
 
-WHY THIS FILE EXISTS
-    Every page of both labs crashed on load with::
+WHY THE TOGGLE WAS DELETED RATHER THAN FIXED AGAIN
+    "Half light, half dark" was reported five times. It was fixed twice -- once by adding CSS
+    specificity, once by driving Streamlit's own base theme -- and reported again after each.
 
-        StreamlitAPIException: `st.session_state.lab.theme` cannot be modified after the
-        widget with key `lab.theme` is instantiated.
+    The cause was never a single selector. Streamlit compiles its base theme into every native
+    widget it renders, so supporting a second theme means keeping a hand-written stylesheet in step
+    with a compiled one, across every widget and every Streamlit release. Each fix closed the gap
+    for the widgets someone had thought of, and the next release or the next widget reopened it.
 
-    One name was doing two jobs. ``lab.theme`` was the key of the ``st.toggle`` widget *and* the
-    session key the preference store writes to -- so ``remember("theme", …)``, called immediately
-    after the widget was drawn, was always writing to a locked key. Streamlit seals a widget's key
-    the moment the widget renders, so no ordering of those two lines could have worked. The widget
-    key and the preference key had to become different names.
+    Removing the choice removes the class of bug: a page that can only be light cannot be half dark.
 
-    The toggle was reported as "not working" rather than "crashing", which is worth noting: the
-    exception renders inside the page body, so from the browser it looks like a dead switch.
+WHY LIGHT FOR THE LABS
+    They impersonate ordinary business chat applications, which is what makes them useful targets.
+    It also tells them apart at a glance from the dark console that attacks them.
 
-WHY IT DRIVES THE REAL PAGES
-    Importing ``theme.py`` and calling ``render_theme_toggle`` by hand would not reproduce this.
-    The failure needs a live ScriptRunContext, a real widget registration, and a second script run
-    -- which is exactly what ``AppTest`` provides. A unit test here would have passed throughout.
+    This file previously asserted the toggle worked. That it passed while the UI was visibly broken
+    is the reason it now asserts the opposite.
 """
 
 from __future__ import annotations
@@ -31,48 +29,42 @@ from streamlit.testing.v1 import AppTest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND = REPO_ROOT / "frontend"
 
-#: Every page that draws the toggle. All of them crashed, so all of them are checked.
-PAGES = [
-    FRONTEND / "app.py",
-    *sorted((FRONTEND / "pages").glob("*.py")),
-]
-
-#: The preference key. Deliberately asserted as *different* from the widget key below -- that
-#: difference is the fix, and a future refactor collapsing them would restore the crash.
-PREF_KEY = "lab.theme"
-WIDGET_KEY = "lab.theme.toggle"
+PAGES = [FRONTEND / "app.py", *sorted((FRONTEND / "pages").glob("*.py"))]
 
 _TIMEOUT_S = 90
 
 
 @pytest.mark.parametrize("page", PAGES, ids=lambda p: p.name)
-def test_every_page_loads_with_the_toggle(page: Path) -> None:
+def test_every_page_loads(page: Path) -> None:
     app = AppTest.from_file(str(page), default_timeout=_TIMEOUT_S)
     app.run()
 
     assert not app.exception, [e.message for e in app.exception]
-    assert any(t.label == "Dark theme" for t in app.sidebar.toggle), "toggle missing from sidebar"
 
 
-def test_the_widget_key_is_not_the_preference_key() -> None:
-    """The specific collision that caused the crash, pinned as a fact rather than a convention."""
-    from frontend import theme
-
-    assert theme._TOGGLE_KEY != f"lab.{theme._PREF_KEY}"
-    assert theme._TOGGLE_KEY == WIDGET_KEY
-
-
-def test_toggling_switches_the_theme_and_survives_a_rerun() -> None:
-    """Flipping it was the operation that raised, so flip it -- both ways."""
-    app = AppTest.from_file(str(FRONTEND / "app.py"), default_timeout=_TIMEOUT_S)
+@pytest.mark.parametrize("page", PAGES, ids=lambda p: p.name)
+def test_no_page_offers_a_theme_control(page: Path) -> None:
+    """No toggle, no checkbox, no selectbox that could put the UI into a second theme."""
+    app = AppTest.from_file(str(page), default_timeout=_TIMEOUT_S)
     app.run()
 
-    app.sidebar.toggle[0].set_value(False).run()
-    assert not app.exception, [e.message for e in app.exception]
-    assert app.session_state[PREF_KEY] == "light"
-    assert app.sidebar.toggle[0].value is False
+    labels = [w.label for w in (*app.toggle, *app.checkbox, *app.selectbox)]
+    offending = [label for label in labels if "theme" in str(label).lower()]
+    assert not offending, f"{page.name} still offers a theme control: {offending}"
 
-    app.sidebar.toggle[0].set_value(True).run()
-    assert not app.exception, [e.message for e in app.exception]
-    assert app.session_state[PREF_KEY] == "dark"
-    assert app.sidebar.toggle[0].value is True
+
+def test_the_toggle_renderer_is_gone() -> None:
+    """Pinned as a fact: leaving the function behind invites a page to call it again."""
+    from frontend import theme
+
+    assert not hasattr(theme, "render_theme_toggle")
+
+
+def test_the_palette_is_light_and_not_configurable() -> None:
+    """`apply` ignores any stored preference. A hand-edited URL cannot produce a dark lab."""
+    from frontend import theme
+
+    palette = theme.apply(settings=None)
+
+    assert palette.name == "light"
+    assert palette is theme.LIGHT

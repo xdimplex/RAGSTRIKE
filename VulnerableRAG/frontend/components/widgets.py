@@ -29,14 +29,14 @@ def profile_banner(profile: str) -> None:
     is the single fact this lab must never let anyone mistake.
     """
     if profile == "vulnerable":
-        title = "⚠️ Vulnerable profile — no security controls active"
+        title = "▲ Vulnerable profile — no security controls active"
         body = (
             "This application follows instructions found in uploaded documents and discloses its "
             "system prompt on request. Local lab only."
         )
         variant = "vulnerable"
     else:
-        title = "🛡️ Secure profile — security controls active"
+        title = "● Secure profile — security controls active"
         body = "Retrieved content is fenced as data, and output is filtered before it is returned."
         variant = "secure"
 

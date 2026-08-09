@@ -10,18 +10,14 @@ WHY NAVIGATION IS BUTTONS AND NOT `st.navigation`
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 from ragstrike.dashboard.assets.branding import TAGLINE, wordmark
 from ragstrike.dashboard.components.html import escape, style, tag
 from ragstrike.dashboard.context import PageContext
 from ragstrike.dashboard.navigation.routes import grouped_routes
 from ragstrike.dashboard.services.search import group_by_kind, search
 
-#: The sidebar toggle's widget key, and a shadow key recording what this module last wrote to it.
-#: The shadow is what lets an external change (the Settings page) be told apart from a user flip.
-_TOGGLE_KEY = "rs.sidebar.theme"
-_LAST_PUSHED = "rs.sidebar.theme.pushed"
+# NO THEME TOGGLE. The console is always dark -- see `build_context` for why the choice was
+# deleted rather than fixed again.
 
 
 def _connection_line(context: PageContext) -> str:
@@ -87,12 +83,17 @@ def render_sidebar(context: PageContext) -> str:
         if context.state.search_query:
             selected = _render_search_results(context, selected)
 
-        st.divider()
-        for group, routes in grouped_routes():
-            st.markdown(
-                tag("div", escape(group), class_="rs-label", style="margin-top:6px"),
-                unsafe_allow_html=True,
-            )
+        # ONE FLAT LIST, NO GROUP HEADINGS, NO TOOLTIPS.
+        #
+        # `help=` put a floating tooltip over the nav on every hover -- "Configured targets, their
+        # health, and their authorization records." obscuring the buttons underneath it. A label
+        # that covers the thing it describes is worse than no label, and the section names are
+        # already self-explanatory.
+        #
+        # The group headings ("MANAGE") cost a row each and rendered as loose text beside the
+        # buttons. Removing them and the headings' margins is what makes all nine sections fit
+        # without scrolling, which is the layout in the reference diagram.
+        for _group, routes in grouped_routes():
             for route in routes:
                 disabled = route.needs_backend and not context.backend_online and not context.demo
                 if st.button(
@@ -101,53 +102,11 @@ def render_sidebar(context: PageContext) -> str:
                     width="stretch",
                     type="primary" if route.id == selected else "secondary",
                     disabled=disabled,
-                    help=route.summary if not disabled else f"{route.summary} (needs the backend)",
                 ):
                     selected = route.id
 
-        _render_theme_toggle(context)
-
     return selected
 
-
-def _render_theme_toggle(context: PageContext) -> None:
-    """The dark/light switch.
-
-    In the sidebar rather than buried in Settings because it is reachable from every section, and
-    because an operator who lands on a theme they cannot read should not have to navigate to fix it.
-
-    The choice is written to ``state.settings`` -- the same store the Settings page's theme control
-    uses, deliberately, so there is one source of truth. ``build_context`` reads it on every run and
-    ``sync_to_url`` mirrors it into the query string, so a change takes effect on the next re-render
-    and survives a browser refresh.
-    """
-    import streamlit as st
-
-    st.divider()
-    authoritative_dark = context.config.theme != "light"
-
-    # Keep the widget in step with the setting when something ELSE changed it -- the Settings page
-    # has its own theme control. A Streamlit widget with a key ignores `value=` once it has state,
-    # so without this the sidebar's stale value would silently win and undo the Settings choice.
-    # `_LAST_PUSHED` records what this function last wrote, which is what makes an external change
-    # distinguishable from a genuine flip of the switch.
-    if st.session_state.get(_LAST_PUSHED) != authoritative_dark:
-        st.session_state[_TOGGLE_KEY] = authoritative_dark
-        st.session_state[_LAST_PUSHED] = authoritative_dark
-
-    wants_dark = st.toggle(
-        "Dark theme",
-        key=_TOGGLE_KEY,
-        help="Applies to the whole console and is remembered across a refresh.",
-    )
-    if wants_dark != authoritative_dark:
-        context.state.settings = replace(
-            context.config, theme="dark" if wants_dark else "light"
-        )
-        st.session_state[_LAST_PUSHED] = wants_dark
-        # Re-run so the stylesheet is rebuilt from the new palette. Without this the toggle would
-        # only take effect on the operator's *next* interaction, which reads as a broken switch.
-        st.rerun()
 
 
 def _render_search_results(context: PageContext, selected: str) -> str:

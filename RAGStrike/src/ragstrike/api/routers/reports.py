@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse
 
 from ragstrike import __version__
 from ragstrike.api.deps import get_service
+from ragstrike.api.routers.scans import _grade
 from ragstrike.api.schemas.models import (
     ReportList,
     ReportOut,
@@ -29,7 +30,7 @@ from ragstrike.api.schemas.models import (
 from ragstrike.api.service import ScanService
 from ragstrike.reporters.base.record import StoredReport
 from ragstrike.reporters.config import build_service as build_reporting
-from ragstrike.reporters.exporters.export_manager import ExportManager
+from ragstrike.reporters.exporters.export_manager import ExportManager, safe_component
 
 router = APIRouter(tags=["reports"])
 
@@ -98,9 +99,30 @@ async def generate_report(scan_id: str, request: ReportRequest, service: Service
         ),
     )
 
-    output_dir = service.settings.storage.reports_dir / scan_id
+    # FOLDER AND FILENAME CARRY THE SCAN'S NAME, NOT ITS ID.
+    #
+    # `reports/47cce83d3e9f4512a327b7409e2f4859/ragstrike-47cce83d....html` is unusable: a directory
+    # listing of a dozen scans is a wall of identical-looking hex, and an operator who wants "the
+    # standard run against secure-rag" has to open them one by one to find it.
+    #
+    # `safe_component` is doing security work, not tidying. The name is operator-supplied text going
+    # into a filesystem path, so directory separators and parent references have to come out --
+    # `../../etc/foo` as a scan name must not escape the reports directory.
+    #
+    # The id is APPENDED rather than replaced. Two scans may legitimately share a name ("nightly
+    # sweep" run twice), and a report that silently overwrote yesterday's would lose evidence; the
+    # suffix keeps them distinct while the readable part stays in front.
+    label = safe_component(session.display_name, fallback=scan_id)
+    folder = f"{label}-{scan_id[:8]}"
+
+    output_dir = service.settings.storage.reports_dir / folder
     manager = ExportManager(reporting.engine, output_dir)
-    written = {fmt: str(manager.export(generated, fmt).path) for fmt in wanted}
+    written = {
+        fmt: str(
+            manager.export(generated, fmt, filename=f"{label}-{scan_id[:8]}.{fmt}").path
+        )
+        for fmt in wanted
+    }
 
     # Record it. Rendering used to write files and stop there, so `GET /reports` had nothing to
     # return and the Reports page stayed empty however many times an operator pressed Generate --
@@ -141,6 +163,42 @@ async def generate_report(scan_id: str, request: ReportRequest, service: Service
     )
 
 
+async def _render_html(scan_id: str, directory: Path, service: ScanService) -> Path | None:
+    """Render this scan's report as HTML into *directory*, returning the file.
+
+    ``None`` when the scan itself is gone -- the caller turns that into the same 404 it would have
+    raised anyway. Only HTML is produced here; every other format keeps "generate it explicitly"
+    semantics, because only HTML has a caller that needs it to exist unconditionally.
+    """
+    session = await service.session(scan_id)
+    if session is None:
+        return None
+
+    findings = await service.findings.findings_for(scan_id)
+    reporting, config, _ = build_reporting()
+    duration_ms = 0
+    if session.finished_at and session.started_at:
+        duration_ms = int((session.finished_at - session.started_at).total_seconds() * 1000)
+
+    generated = reporting.generate(
+        findings,
+        config.context(
+            scan_id=scan_id,
+            target=session.target_name,
+            framework_version=__version__,
+            analyzer_version="1.0.0",
+            scoring_model_version="1.0.0",
+            duration_ms=duration_ms,
+            scan_started=session.started_at,
+            scan_finished=session.finished_at,
+            scan_score=round(max((f.risk_score for f in findings), default=0.0), 2),
+        ),
+    )
+    label = safe_component(session.display_name, fallback=scan_id)
+    manager = ExportManager(reporting.engine, directory)
+    return Path(manager.export(generated, "html", filename=f"{label}-{scan_id[:8]}.html").path)
+
+
 def _stored_content(engine: Any, generated: Any, fmt: str) -> str:
     """The document to persist, as text.
 
@@ -165,16 +223,48 @@ async def list_reports(service: Service, scan_id: str = "") -> ReportList:
     document would ship megabytes to draw a table of a dozen rows.
     """
     records = await service.reports.list_reports(scan_id)
+
+    # SCAN NAMES, RESOLVED ONCE PER DISTINCT SCAN.
+    #
+    # A report is identified in the UI by the scan it covers, and a scan is identified by its name.
+    # The stored report carries only `scan_id`, so the name is looked up here -- once per scan, not
+    # once per report, because a scan commonly has an HTML and a PDF report and several regenerated
+    # copies of each.
+    #
+    # Resolved at listing time rather than denormalised onto the report record: every report already
+    # in the database predates this field, and a stored copy would leave those permanently nameless
+    # while also going stale if a scan were ever renamed.
+    #
+    # The grade rides along on the same lookup. It is `_grade` from the scans router rather than a
+    # second threshold table written here: two implementations of "what letter is this risk" would
+    # eventually disagree, and the Reports page would then contradict Scan History about the very
+    # same scan. `measured=True` is honest -- a stored report was rendered FROM findings, so they
+    # were loaded by definition.
+    names: dict[str, str] = {}
+    grades: dict[str, str] = {}
+    for record in records:
+        if record.scan_id in names:
+            continue
+        session = await service.session(record.scan_id)
+        names[record.scan_id] = session.display_name if session else ""
+        grades[record.scan_id] = (
+            _grade(record.finding_count, record.risk_score, session, measured=True)
+            if session
+            else ""
+        )
+
     return ReportList(
         reports=[
             ReportSummaryOut(
                 report_id=record.id,
                 scan_id=record.scan_id,
+                scan_name=names.get(record.scan_id, ""),
                 title=record.title,
                 target=record.target,
                 format=record.fmt,
                 finding_count=record.finding_count,
                 risk_score=record.risk_score,
+                grade=grades.get(record.scan_id, ""),
                 status=record.status,
                 size_bytes=record.size_bytes,
                 generated_at=record.generated_at,
@@ -266,11 +356,39 @@ async def download_report(
         )
 
     root = service.settings.storage.reports_dir.resolve()
-    directory = (root / scan_id).resolve()
-    if not directory.is_relative_to(root):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid scan id.")
 
-    matches = sorted(directory.glob(f"*.{fmt}")) if directory.is_dir() else []
+    # Report folders are named `{scan-name}-{scan_id[:8]}`, not `{scan_id}`, so the folder cannot be
+    # derived from the id alone -- it is found by its id suffix. The older `{scan_id}` layout is
+    # still matched, because reports generated before that change are still on disk and an operator
+    # opening a week-old assessment should not get a 404.
+    candidates = [
+        d
+        for d in (root / scan_id, *sorted(root.glob(f"*-{scan_id[:8]}")))
+        if d.is_dir() and d.resolve().is_relative_to(root)
+    ]
+    if not candidates:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No reports for scan {scan_id!r}. Generate one first.",
+        )
+    directory = candidates[-1]
+
+    matches = sorted(directory.glob(f"*.{fmt}"))
+
+    # HTML IS RENDERED ON DEMAND WHEN IT IS MISSING.
+    #
+    # The dashboard's preview link always asks for HTML, because HTML is the only format a browser
+    # renders as a document in a tab -- a PDF preview depends on the browser's plugin, and Markdown
+    # and JSON display as source. A report generated only as PDF therefore has no HTML file, and the
+    # preview link for it used to 404 in a fresh tab.
+    #
+    # Re-rendering is safe and cheap: a report is a deterministic render over findings already in
+    # the database, so the HTML produced here is the same document the PDF was made from. It is
+    # written into the scan's own report folder so the next request is a plain file read.
+    if not matches and fmt == "html":
+        rendered = await _render_html(scan_id, directory, service)
+        matches = [rendered] if rendered else []
+
     if not matches:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

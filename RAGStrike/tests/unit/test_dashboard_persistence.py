@@ -132,12 +132,16 @@ def test_an_absent_theme_falls_back_to_the_default() -> None:
     assert restore_theme({}, default="dark") == "dark"
 
 
-def test_the_palette_follows_the_settings_object() -> None:
-    """``state.settings.theme`` is the SINGLE source of truth for the theme.
+def test_the_palette_is_fixed_and_ignores_settings() -> None:
+    """The console is DARK, and no setting can change that.
 
-    Both the Settings page and the sidebar toggle write there, deliberately. Two stores briefly
-    existed and immediately fought: a Streamlit widget with a key ignores its ``value=`` argument
-    once it holds state, so the sidebar's stale value silently overrode the Settings choice.
+    A light mode existed and was reported broken five times, always as "half light, half dark".
+    Streamlit compiles its base theme into every native widget, so a second theme means keeping a
+    hand-written stylesheet in step with a compiled one forever; each fix covered the widgets
+    someone had thought of.
+
+    Removing the choice removes the class of bug. This asserts a stale stored preference -- or a
+    hand-edited URL -- cannot resurrect it.
     """
     from ragstrike.dashboard.context import build_context
 
@@ -148,7 +152,7 @@ def test_the_palette_follows_the_settings_object() -> None:
         backend_online=False,
     )
 
-    assert context.palette.name == "light"
+    assert context.palette.name == "dark"
 
 
 def test_the_configured_default_applies_when_nothing_was_chosen() -> None:

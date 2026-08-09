@@ -105,13 +105,28 @@ def test_upload_exposes_pdf_metadata(api_client: TestClient, sample_pdf: Path) -
     assert body["document"]["pdf_metadata"]["Title"] == "AcmeCorp Employee Handbook"
 
 
-def test_upload_rejects_a_non_pdf(api_client: TestClient) -> None:
+def test_upload_rejects_an_unsupported_type(api_client: TestClient) -> None:
+    """`.txt` is now INGESTED, so the refusal case needs a genuinely unsupported format.
+
+    The allowlist grew to pdf/txt/md/csv because an operator should be able to upload the documents
+    they actually have. It is still an allowlist: an executable is refused on its extension before a
+    byte reaches a parser.
+    """
     response = api_client.post(
-        "/upload", files={"file": ("notes.txt", b"plain text", "text/plain")}
+        "/upload", files={"file": ("payload.exe", b"MZ\x90\x00", "application/octet-stream")}
     )
 
     assert response.status_code == 415
     assert response.json()["error"]["code"] == "unsupported_file_type"
+
+
+def test_upload_accepts_a_text_document(api_client: TestClient) -> None:
+    response = api_client.post(
+        "/upload", files={"file": ("notes.txt", b"Refunds take 14 days.", "text/plain")}
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["chunk_count"] >= 1
 
 
 def test_upload_rejects_an_empty_file(api_client: TestClient) -> None:

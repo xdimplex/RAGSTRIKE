@@ -106,7 +106,7 @@ ROUTES: Final[tuple[Route, ...]] = (
     Route(
         id="about",
         title="About",
-        icon="ⓘ",
+        icon="◈",   # U+24D8 had no glyph in the console font and rendered as a hollow box
         group="System",
         module="ragstrike.dashboard.views.about",
         summary="What RAGStrike is, what it refuses to do, and how to cite it.",

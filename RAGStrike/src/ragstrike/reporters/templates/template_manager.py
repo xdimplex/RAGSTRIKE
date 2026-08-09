@@ -22,6 +22,18 @@ from typing import Any
 
 #: Ships with the engine so a report renders with no configuration. Deliberately one self-contained
 #: block -- see the module docstring on inlining.
+# CARD SIZING -- NOTE FOR MAINTAINERS, DELIBERATELY NOT IN THE EMITTED CSS.
+#
+# The status card holds a WORD, not a figure. At minmax(150px) with a 1.5rem value, "VULNERABLE"
+# was wider than its own box and printed through the border -- on the front page of a security
+# assessment. The other five cards hold short numbers, so the grid had been sized for them.
+#
+# Three changes, none of which shrink anything unnecessarily: a wider grid floor, values that WRAP
+# rather than overflow, and a `.long` class that steps long words down one type size.
+#
+# Kept out of the stylesheet itself because that string ships inside every generated report, and a
+# reader of a security assessment should not be reading our bug history.
+
 DEFAULT_CSS = """
 :root {
   --bg: #ffffff; --fg: #1a1a1a; --muted: #666; --border: #e2e2e2;
@@ -61,12 +73,15 @@ pre { background: rgba(127,127,127,.09); padding: .8rem 1rem; border-radius: 6px
 .st-PASS { color: var(--pass); font-weight: 700; }
 .st-INCONCLUSIVE { color: var(--inconclusive); font-weight: 700; }
 .st-ERROR, .st-SKIPPED { color: var(--muted); font-weight: 700; }
-.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
            gap: .8rem; margin: 1.25rem 0; }
-.card { border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem; }
+.card { border: 1px solid var(--border); border-radius: 8px; padding: .8rem 1rem;
+        overflow-wrap: anywhere; min-width: 0; }
 .card .label { color: var(--muted); font-size: .78rem; text-transform: uppercase;
                letter-spacing: .04em; }
-.card .value { font-size: 1.5rem; font-weight: 650; margin-top: .15rem; }
+.card .value { font-size: 1.5rem; font-weight: 650; margin-top: .15rem; line-height: 1.2;
+               overflow-wrap: anywhere; hyphens: none; }
+.card .value.long { font-size: 1.15rem; }
 .finding { border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.25rem;
            margin: 1rem 0; }
 .headline { font-size: 1.05rem; padding: .9rem 1.1rem; border-radius: 8px;

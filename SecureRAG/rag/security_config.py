@@ -73,7 +73,20 @@ class OutputSettings(BaseModel):
 
 class MaskingSettings(BaseModel):
     mask_emails: bool = True
+    #: Telephone numbers are the other half of a contact detail. Separate from `mask_emails` for the
+    #: same reason that one is separate from credential masking: an operator may want one and not
+    #: the other.
+    mask_phone_numbers: bool = True
+    #: Compare the answer against the secret VALUES present in the passages retrieved for this
+    #: request, not only against the shapes a secret usually takes. This is what catches a secret
+    #: with no distinctive form, and one the model reformatted on its way out.
+    match_context_values: bool = True
     fingerprint_chars: int = Field(default=6, ge=4, le=32)
+    #: Refuse the whole answer when a secret is found, instead of returning it with placeholders in
+    #: place of the values. On, because a redacted answer still confirms the secret exists and still
+    #: answers the question that was asked; off is available for demonstrating what masking alone
+    #: does, which is the weaker control.
+    refuse_on_secret: bool = True
 
 
 class CitationSettings(BaseModel):
@@ -82,11 +95,20 @@ class CitationSettings(BaseModel):
 
 class UploadSecuritySettings(BaseModel):
     max_upload_mb: int = Field(default=25, gt=0, le=1024)
-    allowed_extensions: list[str] = Field(default_factory=lambda: ["pdf"])
+    allowed_extensions: list[str] = Field(
+        default_factory=lambda: ["pdf", "txt", "md", "csv"]
+    )
     allowed_mime_types: list[str] = Field(
         default_factory=lambda: [
             "application/pdf",
             "application/x-pdf",
+            # Browsers label these inconsistently -- a .md arrives as text/markdown from one and
+            # application/octet-stream from another -- so the EXTENSION allowlist and the content
+            # check are what actually decide. The MIME list is a coarse first filter, not the gate.
+            "text/plain",
+            "text/markdown",
+            "text/csv",
+            "text/x-markdown",
             "application/octet-stream",
         ]
     )

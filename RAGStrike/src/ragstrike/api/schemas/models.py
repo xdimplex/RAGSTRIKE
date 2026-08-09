@@ -93,6 +93,37 @@ class PackOut(BaseModel):
     severity: str
     enabled: bool
     requires: list[str] = Field(default_factory=list)
+    #: How many test inputs this pack will actually send -- ``len(attack.payloads())``, the same
+    #: call the scheduler makes. Zero means the pack declined to enumerate them (see ``_payloads``).
+    payloads: int = 0
+    #: The rest of what ``ragstrike plugins info`` shows. The manager has had all of it since
+    #: Phase 4; none of it was ever put on the wire, so the dashboard's Metadata popover rendered a
+    #: blank author, a blank description, and "Permissions: none" for every pack -- including the
+    #: packs whose permissions are the reason another one was refused.
+    description: str = ""
+    author: str = ""
+    permissions: list[str] = Field(default_factory=list)
+    api_version: str = ""
+
+
+class PackCheckOut(BaseModel):
+    """One validation rule and its outcome."""
+
+    name: str
+    passed: bool
+    detail: str = ""
+
+
+class PackValidationOut(BaseModel):
+    """The result of re-validating an installed pack.
+
+    Field names match what the dashboard already reads (`valid`, `checks[].name/passed/detail`) --
+    it has rendered this shape since Phase 12 against an endpoint that did not exist.
+    """
+
+    slug: str
+    valid: bool
+    checks: list[PackCheckOut] = Field(default_factory=list)
 
 
 class PackList(BaseModel):
@@ -263,6 +294,12 @@ class FindingOut(BaseModel):
     risk_score: float
     description: str = ""
     recommendation: str = ""
+    #: When the analyzer produced this finding. The entity has carried it all along; leaving it out
+    #: of the response left the findings table's "When" column blank on every row.
+    timestamp: datetime | None = None
+    #: A one-line summary of the normalized evidence, so the table can say what was observed without
+    #: shipping the whole evidence blob to draw a row.
+    evidence_summary: str = ""
 
 
 class FindingList(BaseModel):
@@ -307,11 +344,19 @@ class ReportSummaryOut(BaseModel):
 
     report_id: str
     scan_id: str
+    #: The NAME the operator gave the scan this report covers -- "vulnerable-rag standard sweep",
+    #: not "94b091f7d42b4953b80337e6d74155d3". Resolved from the scan record at listing time rather
+    #: than stored on the report, so reports generated before this field existed carry it too.
+    scan_name: str = ""
     title: str = ""
     target: str = ""
     format: str = ""
     finding_count: int = 0
     risk_score: float = 0.0
+    #: The scan's letter grade, by the same rule the scan listing uses -- including ``?`` for a scan
+    #: nobody can grade honestly. Without it the Reports page had a Grade column that read ``--`` on
+    #: every row and a badge that always said UNGRADED.
+    grade: str = ""
     status: str = ""
     size_bytes: int = 0
     generated_at: datetime

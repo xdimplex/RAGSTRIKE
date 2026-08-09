@@ -72,7 +72,9 @@ class EmbeddingSettings(BaseModel):
 class IngestionSettings(BaseModel):
     chunk_size: int = Field(default=512, gt=0)
     chunk_overlap: int = Field(default=64, ge=0)
-    supported_types: list[str] = Field(default_factory=lambda: ["pdf"])
+    supported_types: list[str] = Field(
+        default_factory=lambda: ["pdf", "txt", "md", "csv"]
+    )
     max_upload_mb: int = Field(default=25, gt=0)
 
     @field_validator("chunk_overlap")

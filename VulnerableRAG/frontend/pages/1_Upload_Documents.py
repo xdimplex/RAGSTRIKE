@@ -32,12 +32,16 @@ profile_banner(settings.profile)
 # ------------------------------------------------------------------------------------------------
 # Upload
 # ------------------------------------------------------------------------------------------------
-st.subheader("Add a PDF")
+st.subheader("Add a document")
 
 uploaded = st.file_uploader(
-    "Choose a PDF",
+    "Choose a document",
     type=settings.ingestion.supported_types,
-    help=f"Up to {settings.ingestion.max_upload_mb} MB. Text is extracted, chunked, and embedded.",
+    help=(
+        f"Up to {settings.ingestion.max_upload_mb} MB. "
+        f"Accepts {', '.join(settings.ingestion.supported_types)}. "
+        "Every format takes the same path: extract, chunk, embed."
+    ),
 )
 
 if uploaded is not None and st.button("Ingest", type="primary"):
@@ -150,6 +154,3 @@ with remove:
 
 # The theme switch lives in the sidebar on every page, so an operator who lands on a theme they
 # cannot read never has to navigate somewhere else to fix it.
-with st.sidebar:
-    st.divider()
-    theme.render_theme_toggle()

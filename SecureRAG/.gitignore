@@ -50,7 +50,6 @@ htmlcov/
 # ---- Editors, OS, and local tool state ----
 .vscode/
 .idea/
-.claude/settings.local.json
 .DS_Store
 Thumbs.db
 *.swp

@@ -71,9 +71,18 @@ class OllamaClient:
             # internal reasoning and return an empty answer -- and a lab whose answers sometimes
             # vanish is a lab nobody trusts. Off by default; `model.think: true` re-enables it.
             "think": self.think,
+            # KEEP THE MODEL RESIDENT BETWEEN QUESTIONS.
+            #
+            # Ollama unloads a model after five minutes idle by default, and loading qwen2.5:3b back
+            # into memory costs ten to thirty seconds on this machine. During a demonstration, where
+            # questions arrive minutes apart, that reload was often longer than the answer itself --
+            # the first question after a pause felt broken. Thirty minutes covers a whole session.
+            "keep_alive": "30m",
             "options": {
                 "temperature": self.temperature,
                 "num_predict": self.max_tokens,
+                # Stop as soon as the answer is complete rather than filling the token budget.
+                "stop": ["\n\nQuestion:", "\n\nUser:"],
             },
         }
 

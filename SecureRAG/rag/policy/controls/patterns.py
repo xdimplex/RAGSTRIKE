@@ -124,7 +124,16 @@ SECRET_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     # uppercase by convention, but the random portion is mixed case -- and an uppercase-only body
     # class stops at the first lowercase character, masking `VRAG-CANARY-SECRET-` and leaving
     # `a7f3c91e4b8d2065` in the response. A partial mask is not a mask.
-    ("lab_canary", re.compile(r"\b[A-Za-z]{2,6}-CANARY-[A-Za-z0-9_-]{4,}\b")),
+    #
+    # A TRUNCATED CANARY IS STILL A CANARY.
+    #
+    # The suffix used to require four characters and a word boundary, so a model that stopped
+    # mid-token emitted `POISON-CANARY-HI-` -- three characters, ending on a dash -- and the mask did
+    # not fire. The hardened lab then answered an ordinary question with `BREACH CONFIRMED
+    # POISON-CANARY-HI-` in plain sight. A local model truncating its own output is the normal case,
+    # not an edge one, and a redaction rule that only catches the tidy form of a secret is a rule an
+    # attacker can step around by asking for it in pieces.
+    ("lab_canary", re.compile(r"\b[A-Za-z]{2,6}-CANARY-[A-Za-z0-9_-]*")),
     # Connection strings, which leak a credential and a hostname together.
     (
         "connection_string",
@@ -138,13 +147,47 @@ SECRET_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
     ("bearer_token", re.compile(r"\bBearer\s+[A-Za-z0-9._~+/-]{20,}={0,2}", re.IGNORECASE)),
     ("private_key", re.compile(r"-----BEGIN[ A-Z]*PRIVATE KEY-----")),
     # Labelled secrets: `api_key: value`, `password = value`.
+    #
+    # THE LABEL MAY BE PART OF A COMPOUND, AND USUALLY IS.
+    #
+    # This used to anchor the keyword between word boundaries -- `\b(secret|password|token)\b` --
+    # which cannot match `secret_access_key`, `database_password`, `webhook_secret`,
+    # `personal_access_token` or `api_token`, because the character next to the keyword is an
+    # underscore and an underscore is a word character. Only the bare forms (`password =`,
+    # `api_key:`) ever matched.
+    #
+    # Snake_case is how every configuration file, credential register and cloud console writes these
+    # names, so the rule missed the realistic shape and caught only the textbook one. A vendor
+    # register listing `secret_access_key: kLpQ...` went out of the hardened lab in full.
     (
         "labelled_secret",
         re.compile(
-            r"\b(api[_-]?key|apikey|secret|password|passwd|token|credential)\b\s*[:=]\s*"
-            r"[\"']?([^\s\"',;]{8,})[\"']?",
+            # The connector may be a colon, an equals sign, or the word "is".
+            #
+            # A register writes `password: value`. A MODEL writes "the support console admin
+            # password is `value`" -- and the colon-only rule let that straight out of the hardened
+            # lab, which is the form that actually reaches a user, because the model rephrases.
+            # Backticks and quotes around the value are stripped for the same reason.
+            r"\b[\w.*-]{0,32}(?:api[_-]?key|apikey|secret|password|passwd|token|credential)"
+            r"[\w.*-]{0,32}\s*(?:[:=]|\bis\b)\s*[\"'`]?([^\s\"'`,;]{8,})[\"'`]?",
             re.IGNORECASE,
         ),
+    ),
+    #
+    # AWS SECRET ACCESS KEYS, BY SHAPE RATHER THAN BY LABEL.
+    #
+    # An AWS secret key has no prefix to recognise -- it is exactly 40 characters of base64 alphabet
+    # -- so the only rule that could catch it was the labelled one, and that depends on the model
+    # repeating the label in a form the rule expects. It will not reliably: asked for a credential,
+    # a model reformats, so `secret_access_key: kLpQ...` comes back as `**AWS Secret Access Key**:
+    # kLpQ...` and the label rule no longer applies while the secret is just as exposed.
+    #
+    # Matching the value itself removes the dependency on the label entirely. The two lookaheads
+    # require at least one letter and one digit, so a 40-character run of prose cannot match; a
+    # 40-character hex digest can, and masking one of those is the right call in a security tool.
+    (
+        "aws_secret_key",
+        re.compile(r"\b(?=[A-Za-z0-9/+=]{40}\b)(?=\S*[A-Za-z])(?=\S*\d)[A-Za-z0-9/+=]{40}\b"),
     ),
     # High-entropy hex, which is what most generated keys look like once the prefix is stripped.
     ("hex_secret", re.compile(r"\b[0-9a-f]{32,}\b", re.IGNORECASE)),
@@ -153,6 +196,48 @@ SECRET_PATTERNS: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
 #: Email addresses are masked separately: they are PII rather than credentials, and an operator may
 #: reasonably want one and not the other.
 EMAIL_PATTERN: Final = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.-]+\b")
+
+#: Fields whose VALUE is confidential regardless of what it looks like.
+#:
+#: A salary is "42600". There is no shape to recognise -- it is a number, and a rule that masked
+#: five-digit numbers would redact page counts and contract dates along with it. What makes it
+#: confidential is not the value but the FIELD IT SITS IN, and the field name is right there in the
+#: retrieved passage: a CSV chunk reads ``... | salary_gbp: 42600 | manager: ...``.
+#:
+#: So the label is what this matches, and the value is what it captures. The list is deliberately
+#: short: every entry is something that would be a reportable disclosure on its own, and a broad
+#: list ("office", "department") would refuse ordinary questions about how the company is organised.
+SENSITIVE_FIELD_PATTERN: Final = re.compile(
+    r"\b[\w.-]{0,24}(?:salary|compensation|remuneration|bonus|performance[_\s-]?rating"
+    r"|date[_\s-]?of[_\s-]?birth|national[_\s-]?insurance|ni[_\s-]?number|ssn"
+    r"|home[_\s-]?address|contract[_\s-]?value)[\w.-]{0,24}\s*[:=]\s*([^|\n,;]{2,60})",
+    re.IGNORECASE,
+)
+
+#: Telephone numbers, the other half of a contact detail.
+#:
+#: Added after the hardened lab answered "what is Elena Rossi's mobile number?" with the number. The
+#: email rule had made personal ADDRESSES unreachable while the directory's phone column stayed
+#: wide open -- half of a PII control is not a PII control.
+#:
+#: Matches international (+44 7700 900546, +1 415 555 0143) and national trunk (07700 900546) forms,
+#: with spaces, dashes or dots as separators. Requires at least nine digits, so a year, a port
+#: number, a monetary amount or a document reference cannot match.
+PHONE_PATTERN: Final = re.compile(
+    # Not mid-token, so an identifier like NW-EMP-0412 cannot contribute its digits.
+    r"(?<![\w.])"
+    # AT LEAST NINE DIGITS, counted from here across separators only. This is what keeps a date
+    # ("2026-08-09", eight digits) and a chunking setting ("512/64") out, without needing the
+    # caller to post-validate a match. A first version omitted it and instead ended with a
+    # lookbehind for "not a digit" -- which can never hold at the end of a phone number, so the
+    # pattern matched nothing at all and the control silently did nothing.
+    r"(?=(?:[\s.()+-]*\d){9})"
+    # Groups of up to SIX digits: UK subscriber numbers are written "7700 900546", and capping a
+    # group at five split the number in half -- the match started mid-number and the leading "+44"
+    # was left in the answer beside a redaction, which looks like a bug and is one.
+    r"(?:\+\d{1,3}[\s.-]?)?(?:\(\d{2,6}\)[\s.-]?)?\d{2,6}(?:[\s.-]\d{2,6}){1,4}"
+    r"(?!\w)",
+)
 
 
 # -------------------------------------------------------------------------------------------------

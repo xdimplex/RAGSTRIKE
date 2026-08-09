@@ -88,10 +88,11 @@ def report_rows(reports: Sequence[ReportView]) -> list[dict[str, Any]]:
     """Report listing rows."""
     return [
         {
-            "Report": report.id,
-            "Scan": report.scan_id,
-            "Target": report.target,
+            # The scan's name, for the same reason the Scan History table stopped leading with a
+            # hex id: twenty rows of truncated hex tell the reader nothing about which run is which.
+            "Report": report.scan_name or report.id,
             "Format": report.fmt.upper(),
+            "Target": report.target,
             "Status": report.status or "--",
             "Grade": report.grade or "--",
             "Risk": round(report.risk_score, 1),

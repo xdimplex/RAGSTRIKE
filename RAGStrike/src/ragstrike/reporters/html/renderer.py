@@ -24,6 +24,15 @@ from ragstrike.reporters.templates.template_manager import (
     TemplateSet,
 )
 
+#: Values longer than this are words, not figures, and step down a type size so they fit their card.
+#: Eight covers every status the analyzer emits except VULNERABLE and INCONCLUSIVE, which are the
+#: two that overflowed.
+_LONG_VALUE_CHARS = 8
+
+
+def _size_class(value: object) -> str:
+    return " long" if len(str(value)) > _LONG_VALUE_CHARS else ""
+
 
 class HtmlRenderer(BaseRenderer):
     """Renders a self-contained HTML document."""
@@ -99,9 +108,11 @@ class HtmlRenderer(BaseRenderer):
             ("Failed", str(s.failed)),
             ("Inconclusive", str(s.inconclusive)),
         ]
+        # `long` on values that are words rather than figures -- "VULNERABLE" at the numeric type
+        # size is what overflowed the card in the first place.
         card_html = "".join(
             f'<div class="card"><div class="label">{label}</div>'
-            f'<div class="value">{value}</div></div>'
+            f'<div class="value{_size_class(value)}">{value}</div></div>'
             for label, value in cards
         )
         return (

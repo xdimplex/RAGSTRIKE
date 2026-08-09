@@ -85,3 +85,17 @@ class ResetSessionRequest(BaseModel):
 class ResetSessionResponse(BaseModel):
     session_id: str
     reset: bool
+
+
+class SessionTurn(BaseModel):
+    """One recorded message. `role` is "user" or "assistant"."""
+
+    role: str
+    content: str
+
+
+class SessionHistoryResponse(BaseModel):
+    """A conversation, oldest turn first, so a refreshed page can rebuild itself."""
+
+    session_id: str
+    turns: list[SessionTurn] = Field(default_factory=list)

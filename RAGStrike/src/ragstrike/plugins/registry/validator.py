@@ -27,10 +27,17 @@ from ragstrike.plugins.loader.manifest import MANIFEST_NAMES, PluginManifest
 
 log = logging.getLogger(__name__)
 
-#: Directories a well-formed plugin ships. ``payloads/`` is required-but-may-be-empty; the others
-#: are optional but the validator reports on their presence so an operator can see what a plugin
-#: has decided to ship.
-REQUIRED_DIRS = ("payloads",)
+#: A pack must ship its test cases, in ONE of the two shapes the framework supports.
+#:
+#: ``payloads/`` is the common one: a list of attack strings sent at the target. ``datasets/`` is the
+#: other, used by read-only evaluation packs -- ``context-poisoning`` declares question/expectation
+#: datasets and never writes to the target, so it has no payloads to ship and never will.
+#:
+#: This was ``("payloads",)``, and nothing enforced it: `validate_structure` had no caller. Wiring it
+#: to the Validate button made it live, and it immediately reported `context-poisoning` -- a pack
+#: that loads, runs, and is central to the differential -- as FAILING validation. The rule was
+#: narrower than the framework it described.
+CASE_DIRS = ("payloads", "datasets")
 OPTIONAL_DIRS = ("tests", "examples", "docs", "assets", "schemas")
 
 
@@ -65,15 +72,18 @@ def validate_structure(plugin_dir: Path) -> ValidationReport:
         )
     )
 
-    for required in REQUIRED_DIRS:
-        exists = (plugin_dir / required).is_dir()
-        checks.append(
-            Check(
-                rule=f"has-{required}",
-                passed=exists,
-                detail="" if exists else f"{required}/ is required (may be empty).",
-            )
+    present = [name for name in CASE_DIRS if (plugin_dir / name).is_dir()]
+    checks.append(
+        Check(
+            rule="has-cases",
+            passed=bool(present),
+            detail=(
+                f"ships {', '.join(present)}/"
+                if present
+                else f"a pack must ship one of: {', '.join(f'{d}/' for d in CASE_DIRS)}."
+            ),
         )
+    )
 
     return ValidationReport(checks=checks)
 

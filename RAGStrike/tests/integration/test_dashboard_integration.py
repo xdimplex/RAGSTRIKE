@@ -500,11 +500,19 @@ def test_the_scan_center_offers_target_profile_and_plugin_selection() -> None:
     assert any(widget.key == "rs.scan.name" for widget in app.text_input)
 
 
-def test_the_plan_summary_labels_its_numbers_as_estimates() -> None:
+def test_the_plan_summary_says_where_its_numbers_come_from() -> None:
+    """Cases are counted, the duration is estimated, and the panel distinguishes the two.
+
+    It used to call both an estimate, because both were: cases were a per-plugin constant times the
+    plugin count, which predicted 360 for a run that sent 65. Now the count is the packs' own
+    payloads, so only the duration is a guess -- and the footer has to say so, since the number sits
+    directly above the button that starts the scan.
+    """
     rendered = body(run("scan_center"))
 
     assert "Estimated" in rendered
-    assert "Estimates, not predictions" in rendered
+    assert "payloads the selected packs will send" in rendered
+    assert "estimate" in rendered
 
 
 def test_a_running_scan_shows_progress_stage_plugin_and_logs() -> None:
@@ -524,13 +532,20 @@ def test_a_running_scan_shows_progress_stage_plugin_and_logs() -> None:
 
 
 def test_settings_offers_every_preference_the_brief_names() -> None:
+    """The brief's preference list, MINUS `theme`.
+
+    `theme` was in the original brief and has been removed at the operator's explicit instruction,
+    after "half light, half dark" was reported five times. The requirement changed; this list is
+    the record of that, rather than a quiet omission.
+
+    Everything else the brief named is still here.
+    """
     app = run("settings")
     keys = {widget.key for widget in app.selectbox}
     keys |= {widget.key for widget in app.text_input}
     keys |= {widget.key for widget in app.number_input}
 
     for name in (
-        "theme",
         "language",
         "log_level",
         "default_timeout_s",
@@ -541,18 +556,25 @@ def test_settings_offers_every_preference_the_brief_names() -> None:
         assert f"rs.set.{name}" in keys, f"Settings is missing {name}"
 
 
-def test_changing_the_theme_takes_effect_in_the_same_session() -> None:
-    """The whole theme system, end to end: pick light, and the stylesheet that gets written is the
-    light one."""
-    from ragstrike.dashboard.theme.palette import LIGHT
+def test_no_page_offers_a_theme_control() -> None:
+    """The toggle AND the Settings dropdown are gone, and the stylesheet is the dark one.
 
-    app = run("settings")
+    This test used to drive the light theme end to end. It passed while the console rendered half
+    light and half dark, because it checked that the stylesheet said "light" -- not that the page
+    looked it. Streamlit's own compiled widgets were never covered by that assertion.
 
-    app.selectbox(key="rs.set.theme").set_value("light").run()
-    app.button(key="rs.set.apply").click().run()
+    Two controls had to go, not one: removing the sidebar toggle and leaving the Settings dropdown
+    would have kept the broken state reachable by a different route.
+    """
+    from ragstrike.dashboard.theme.palette import DARK
 
-    assert app.session_state["rs.settings"].theme == "light"
-    assert LIGHT.background in str(app.markdown[0].value)
+    for page in ("settings", "home", "scan_history"):
+        app = run(page)
+        labels = [w.label for w in (*app.selectbox, *app.checkbox, *app.toggle)]
+        offending = [label for label in labels if "theme" in str(label).lower()]
+        assert not offending, f"{page} still offers a theme control: {offending}"
+
+    assert DARK.background in str(run("home").markdown[0].value)
 
 
 def test_settings_does_not_dump_configuration_or_show_a_backend_error() -> None:
@@ -596,20 +618,22 @@ def test_the_language_selector_is_honest_about_being_a_placeholder() -> None:
 # -- system status ---------------------------------------------------------------------------------
 
 
-def test_system_status_shows_all_eight_subsystems() -> None:
+def test_system_status_shows_ragstrikes_own_subsystems() -> None:
+    """Seven, not eight: ChromaDB belongs to the labs and was removed from this board."""
     rendered = markup(run("system_status"))
 
     for name in (
         "FastAPI",
         "Ollama",
         "SQLite",
-        "ChromaDB",
         "Analyzer",
         "Reporting Engine",
         "Plugin Framework",
         "SDK",
     ):
         assert name in rendered, f"System Status is missing {name}"
+
+    assert "ChromaDB" not in rendered, "ChromaDB is the labs' vector store, not the scanner's"
 
 
 def test_system_status_does_not_promise_host_resources() -> None:

@@ -1,0 +1,11 @@
+employee_id,full_name,job_title,department,work_email,personal_email,mobile,office,salary_gbp,manager,performance_rating,notes
+NW-EMP-0412,Priya Raman,Head of Platform Engineering,Engineering,p.raman@northwind-analytics.example,priya.raman.home@mailbox.example,+44 7700 900412,London,98500,Sofia Lindqvist,Exceeds,Holds production break-glass credentials
+NW-EMP-0433,Tom Okafor,Senior Site Reliability Engineer,Engineering,t.okafor@northwind-analytics.example,tokafor.personal@mailbox.example,+44 7700 900433,Manchester,81200,Priya Raman,Meets,On the primary on-call rota
+NW-EMP-0451,Sofia Lindqvist,Chief Technology Officer,Executive,s.lindqvist@northwind-analytics.example,sofia.l.private@mailbox.example,+44 7700 900451,London,164000,Daniel Achebe,Exceeds,Approves all spend above 50000 GBP
+NW-EMP-0478,Grace Whitfield,Data Protection Officer,Legal and Compliance,g.whitfield@northwind-analytics.example,gwhitfield.home@mailbox.example,+44 7700 900478,Leeds,89400,Daniel Achebe,Exceeds,Sole approver for subject access requests
+NW-EMP-0492,Idris Bello,Customer Support Team Lead,Customer Operations,i.bello@northwind-analytics.example,idris.bello.me@mailbox.example,+44 7700 900492,Bristol,54800,Anna Kowalski,Meets,Escalation point for Severity 1 tickets
+NW-EMP-0507,Anna Kowalski,Director of Customer Operations,Customer Operations,a.kowalski@northwind-analytics.example,anna.k.private@mailbox.example,+44 7700 900507,London,112300,Daniel Achebe,Meets,Owns the support playbook
+NW-EMP-0519,Kofi Mensah,Security Analyst,Information Security,k.mensah@northwind-analytics.example,kofi.mensah.home@mailbox.example,+44 7700 900519,Remote,67900,Grace Whitfield,Exceeds,Runs the quarterly access review
+NW-EMP-0534,Daniel Achebe,Chief Executive Officer,Executive,d.achebe@northwind-analytics.example,daniel.achebe.priv@mailbox.example,+44 7700 900534,London,215000,Board,Not rated,Final authority on incident disclosure
+NW-EMP-0546,Elena Rossi,Junior Data Engineer,Engineering,e.rossi@northwind-analytics.example,elena.rossi.home@mailbox.example,+44 7700 900546,Manchester,42600,Priya Raman,Below,Performance improvement plan opened 2026-06-01
+NW-EMP-0558,Marcus Hale,Account Executive,Sales,m.hale@northwind-analytics.example,marcus.hale.me@mailbox.example,+44 7700 900558,London,61500,Anna Kowalski,Meets,Commission plan differs from standard scheme

@@ -90,7 +90,7 @@ embedding:
 ingestion:
   chunk_size: 512
   chunk_overlap: 64
-  supported_types: ["pdf"]
+  supported_types: ["pdf", "txt", "md", "csv"]
   max_upload_mb: 25
 
 retrieval:

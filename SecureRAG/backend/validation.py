@@ -47,6 +47,14 @@ MAGIC_BYTES: dict[str, tuple[bytes, ...]] = {
     "pdf": (b"%PDF-",),
 }
 
+#: Formats with no signature to check, because plain text has none.
+#:
+#: They are NOT waved through. A file claiming to be text is verified to actually BE text: decodable
+#: as UTF-8 and free of NUL bytes. That is the strongest statement available for these formats, and
+#: it still refuses the case this check exists for -- an executable or an archive renamed to ``.txt``
+#: to slip past the extension allowlist.
+TEXTUAL_TYPES: frozenset[str] = frozenset({"txt", "md", "csv"})
+
 #: How far into the file to look for the signature. The PDF specification tolerates up to 1024 bytes
 #: of leading garbage before ``%PDF-``; readers vary. Scanning a small window accepts real-world
 #: files without accepting a file that merely mentions ``%PDF-`` somewhere in its body.
@@ -152,6 +160,10 @@ class UploadValidator:
 
     @staticmethod
     def _verify_magic(filename: str, extension: str, content: bytes) -> None:
+        if extension in TEXTUAL_TYPES:
+            UploadValidator._check_is_text(content, extension)
+            return
+
         signatures = MAGIC_BYTES.get(extension)
         if not signatures:
             # An allowed extension with no known signature. Refuse rather than wave it through:
@@ -169,3 +181,29 @@ class UploadValidator:
                 f"{MAGIC_WINDOW} bytes; its contents do not match its extension.",
                 hint="The file may be renamed, corrupt, or truncated.",
             )
+
+
+    @staticmethod
+    def _check_is_text(content: bytes, extension: str) -> None:
+        """Verify a file claiming to be text really is text.
+
+        Plain text has no magic bytes, so the signature check cannot apply -- but "no signature"
+        must not become "no check". A NUL byte does not occur in a UTF-8 text document and does
+        occur in essentially every binary format, which makes it a cheap, reliable discriminator;
+        failing to decode is the other half.
+
+        This is the same refusal the signature check makes, phrased for a format that has none: the
+        file is not what it says it is.
+        """
+        if b"\x00" in content[:MAGIC_WINDOW]:
+            raise InvalidDocumentError(
+                f"This file is not {extension} text -- it contains binary data.",
+                hint="Rename it to its real extension, or convert it to text first.",
+            )
+        try:
+            content[:MAGIC_WINDOW].decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise InvalidDocumentError(
+                f"This file is not readable as {extension} text.",
+                hint="Save it as UTF-8 and upload it again.",
+            ) from exc

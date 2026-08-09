@@ -1,44 +1,8 @@
-# RAGSTRIKE -- one .gitignore for all three applications.
-#
-# The three projects (RAGStrike, SecureRAG, VulnerableRAG) share the same stack, so they generate
-# the same kinds of artifact in the same places. Patterns without a leading slash match at any
-# depth, which is what lets one file at the root cover all of them.
-#
-# THE RULE THIS FOLLOWS
-#   Commit what a human wrote. Ignore what a machine can regenerate.
-#
-#   Everything below is regenerable: virtualenvs from `pip install -e`, corpora from
-#   `scripts/seed_corpus.py`, reports from a scan. None of it belongs in a repository, and the
-#   virtualenvs alone are 2.6 GB -- against roughly 6 MB of actual source.
 
-# --------------------------------------------------------------------------------------------------
-# Virtualenvs -- 2.6 GB across the three projects. Rebuilt by the install step in GUIDE/01.
-#
-# They are also NOT PORTABLE: a venv records absolute paths and a platform. This project was
-# developed on Windows and moved to Linux, and the copied `.venv` folders contained `Scripts/` and
-# `Lib/` instead of `bin/` and `lib/` -- they could not run and had to be deleted and rebuilt.
-# Committing one guarantees the next person inherits that same broken state.
-# --------------------------------------------------------------------------------------------------
 .venv/
 venv/
 ENV/
 env/
-
-# --------------------------------------------------------------------------------------------------
-# Archived per-project git histories.
-#
-# The three applications each used to be their own repository, nested inside this one. Git tracked
-# them as gitlinks (mode 160000) with no `.gitmodules`, so GitHub rendered three empty grey folders
-# and NONE of the source was ever actually pushed -- roughly a thousand files, invisible.
-#
-# Flattening them into this repository required their `.git` directories to stop existing where git
-# would find them. They were RENAMED rather than deleted, so the old commit history is still on
-# disk and recoverable; neither had a remote, so nothing existed online to lose. Recover one with:
-#
-#     mv RAGStrike/.git-archive-RAGStrike RAGStrike/.git
-#
-# Ignored because that history belongs to a layout this repository no longer uses.
-# --------------------------------------------------------------------------------------------------
 .git-archive-*/
 
 # --------------------------------------------------------------------------------------------------

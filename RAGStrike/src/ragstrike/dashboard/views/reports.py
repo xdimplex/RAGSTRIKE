@@ -26,6 +26,7 @@ from ragstrike.dashboard.services.errors import DashboardError
 from ragstrike.dashboard.services.filters import FilterState, apply_filters, sort_items
 from ragstrike.dashboard.services.models import ReportView
 from ragstrike.dashboard.services.report_service import MEDIA_TYPES
+from ragstrike.dashboard.state.persistence import durable_check, durable_select, durable_text
 from ragstrike.dashboard.widgets.tables import render_table, report_rows
 
 PAGE_ID = "reports"
@@ -73,18 +74,19 @@ def render(context: PageContext) -> None:
 def _toolbar(context: PageContext, reports: list[ReportView]) -> list[ReportView]:
     import streamlit as st
 
+    # See scan_history: plain widgets lose their value the moment the section is left.
     columns = st.columns([3, 1, 1])
     with columns[0]:
-        query = st.text_input(
+        query = durable_text(
             "Search reports",
-            key="rs.rep.search",
-            placeholder="Search by report id, scan id, target, or format...",
+            "rs.rep.search",
+            placeholder="Search by scan name, report id, target, or format...",
             label_visibility="collapsed",
         )
     with columns[1]:
-        sort_key = st.selectbox("Sort by", SORT_CHOICES, key="rs.rep.sort")
+        sort_key = durable_select("Sort by", SORT_CHOICES, "rs.rep.sort")
     with columns[2]:
-        descending = st.checkbox("Descending", value=True, key="rs.rep.desc")
+        descending = durable_check("Descending", "rs.rep.desc", default=True)
 
     stored = context.state.filters_for(PAGE_ID)
     previous = stored.get("state")
@@ -106,12 +108,28 @@ def _detail(context: PageContext, reports: list[ReportView]) -> None:
     import streamlit as st
 
     section("Detail")
-    ids = [report.id for report in reports]
+
+    # READABLE LABELS AS THE OPTIONS, and uniqueness ENFORCED rather than assumed -- the same two
+    # rules Scan History arrived at the hard way.
+    #
+    # Not `format_func`: with a `key`, Streamlit resolves the replayed selection through the
+    # FORMATTED label, so a stored raw id stops matching and a different report is selected. Not a
+    # bare name either: one scan commonly has several reports (HTML and PDF, plus regenerated
+    # copies), so labels collide, later entries overwrite earlier ones in the map, and the page
+    # opens a report the operator did not choose. The generation timestamp settles ties.
+    by_label: dict[str, ReportView] = {}
+    for item in reports:
+        label = item.label
+        if label in by_label:
+            label = f"{label}  ·  {item.generated_at or item.id}"
+        by_label[label] = item
+
+    labels = list(by_label)
     remembered = context.state.selected_report
-    index = ids.index(remembered) if remembered in ids else 0
-    chosen_id = st.selectbox("Report", ids, index=index, key="rs.rep.selected")
-    context.state.selected_report = str(chosen_id)
-    report = next(r for r in reports if r.id == chosen_id)
+    index = next((i for i, name in enumerate(labels) if by_label[name].id == remembered), 0)
+    chosen_label = st.selectbox("Report", labels, index=index, key="rs.rep.selected")
+    report = by_label[str(chosen_label)]
+    context.state.selected_report = report.id
 
     # Card and actions in one bordered container: as siblings, the card's border rendered across
     # "Open report" and "Delete". Same defect and same fix as the Plugins and Scan History pages.
@@ -127,7 +145,7 @@ def _detail(context: PageContext, reports: list[ReportView]) -> None:
             if confirmation_dialog(
                 key=f"rs.rep.delete.{report.id}",
                 action="Delete",
-                subject=report.id,
+                subject=report.label,
                 state=context.state,
             ):
                 _delete(context, report)
@@ -136,59 +154,40 @@ def _detail(context: PageContext, reports: list[ReportView]) -> None:
 def _open(context: PageContext, report: ReportView) -> None:
     import streamlit as st
 
-    # A real link, opening a real tab, before the in-page preview.
+    # ONE control, not two.
     #
-    # "Open report" used to render into a 720px sandboxed iframe inside the page: safe, and it read
-    # as a cramped thumbnail of a document rather than the document. A report is the deliverable of
-    # this whole tool, and a deliverable that can only be viewed through a letterbox looks unfinished.
+    # There were two: a link that opened the report in a tab, and a "Preview here" button that
+    # rendered it into a 720px sandboxed frame below. The frame was the older of the two and the
+    # worse one -- a report is the deliverable of this whole tool, and viewing it through a
+    # letterbox reads as unfinished. Two buttons doing almost the same thing is also a choice the
+    # reader has to make for no benefit.
     #
-    # The link points at the API, not at the dashboard, and that is deliberate. A report is built
-    # from target responses -- attacker-influenced text -- so it must never be spliced into the
-    # dashboard's own origin. The API is a separate origin with no cookie or session to steal, so a
-    # script inside a report has nothing to reach.
-    inline_url = context.services.reports.inline_url(report.scan_id, report.fmt)
-    if inline_url:
-        html(
-            tag(
-                "a",
-                escape(f"Open the full {report.fmt.upper()} report in a new tab  ↗"),
-                href=inline_url,
-                target="_blank",
-                rel="noopener noreferrer",
-                class_="rs-openlink",
-            )
-        )
-
-    if not st.button("Preview here", key=f"rs.rep.open.{report.id}", width="stretch"):
+    # The link points at the API, not the dashboard. A report is rendered from target responses --
+    # attacker-influenced text -- so it must never be spliced into the dashboard's own origin. The
+    # API is a separate origin holding no cookie or session for a script in a report to reach.
+    # ALWAYS HTML, whatever format this report was generated in.
+    #
+    # HTML is the only format a browser reliably renders as a document in a tab: a PDF depends on
+    # the viewer's plugin, and Markdown and JSON display as source. The label is fixed for the same
+    # reason -- a button whose text changed with the row told the reader about the stored file
+    # rather than about what pressing it does.
+    #
+    # The API renders the HTML on demand if the scan has none on disk, so this link cannot 404 on a
+    # report that was only ever generated as PDF.
+    inline_url = context.services.reports.inline_url(report.scan_id, "html")
+    if not inline_url:
+        st.caption("Preview needs the HTTP backend.")
         return
-    try:
-        rendered = context.services.reports.open_report(report.scan_id, report.id, report.fmt)
-    except DashboardError as exc:
-        html(render_exception(context.palette, exc))
-        return
-
-    if rendered.is_binary:
-        # A PDF has no inline representation here, so offer the file instead of pasting base64 into
-        # the page. Streamlit cannot embed a PDF viewer without shipping the bytes to the browser
-        # anyway, and a download is the honest affordance.
-        st.download_button(
-            f"Download {rendered.filename}",
-            data=rendered.data,
-            file_name=rendered.filename,
-            mime=rendered.media_type,
-            key=f"rs.rep.opendl.{report.id}",
-            width="stretch",
+    html(
+        tag(
+            "a",
+            escape("Preview in HTML"),
+            href=inline_url,
+            target="_blank",
+            rel="noopener noreferrer",
+            class_="rs-openlink",
         )
-    elif report.fmt == "html":
-        # Rendered inside a sandboxed component rather than injected into the page. A report is
-        # built from target responses, which is to say from text an attacker influenced; splicing it
-        # into the dashboard's own DOM would make the report an XSS vector against the tool that
-        # produced it.
-        st.components.v1.html(rendered.content, height=720, scrolling=True)
-    elif report.fmt == "markdown":
-        st.markdown(rendered.content)
-    else:
-        st.code(rendered.content, language=report.fmt)
+    )
 
 
 def _export(context: PageContext, report: ReportView) -> None:
@@ -244,5 +243,5 @@ def _delete(context: PageContext, report: ReportView) -> None:
         html(render_exception(context.palette, exc))
         return
     context.state.selected_report = ""
-    context.notify("warning", f"Report {report.id} deleted.")
+    context.notify("warning", f"Report deleted: {report.label}.")
     st.rerun()

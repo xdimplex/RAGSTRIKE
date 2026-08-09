@@ -115,6 +115,23 @@ security:
     # reasonably want one and not the other.
     mask_emails: true
 
+    # Telephone numbers, the other half of a contact detail. Without this the directory's email
+    # column was unreachable while its mobile column was wide open.
+    mask_phone_numbers: true
+
+    # Compare the answer against the secret values actually present in the retrieved passages, not
+    # only against the shapes a credential usually takes. Shape matching cannot see a secret with no
+    # distinctive form, and stops matching when the model reformats one -- spaced out, reversed, or
+    # truncated a character short. Comparing against known values catches all of those at once.
+    match_context_values: true
+
+    # Refuse the answer outright when a credential or a personal contact detail is found in it,
+    # rather than returning the sentence with placeholders where the values were. A masked answer
+    # still confirms that the secret exists, that this application can reach it, and which record it
+    # belongs to -- so the hardened profile declines the request instead of performing the redaction
+    # in front of the person who asked. Set to false to demonstrate masking on its own.
+    refuse_on_secret: true
+
     # Length of the fingerprint kept in place of a masked value. Enough to correlate two occurrences
     # of the same secret across logs and responses; far too little to recover it.
     fingerprint_chars: 6
@@ -133,8 +150,11 @@ security:
   # ------------------------------------------------------------------------------------------------
   uploads:
     max_upload_mb: 25
-    allowed_extensions: ["pdf"]
-    allowed_mime_types: ["application/pdf", "application/x-pdf", "application/octet-stream"]
+    allowed_extensions: ["pdf", "txt", "md", "csv"]
+    allowed_mime_types: [
+      "application/pdf", "application/x-pdf", "application/octet-stream",
+      "text/plain", "text/markdown", "text/x-markdown", "text/csv",
+    ]
 
     # Checks the file's magic bytes rather than trusting its extension or the Content-Type header,
     # both of which the client controls. `application/octet-stream` is allowed above precisely

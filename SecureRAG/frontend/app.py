@@ -101,11 +101,8 @@ that fires against both labs is measuring something other than the control it cl
 
 **The pipeline**
 
-```
-PDF  ->  extract  ->  chunk  ->  embed  ->  ChromaDB
-                                              |
-question  ->  retrieve  ->  prompt  ->  Ollama  ->  answer
-```
+- **Ingest** — document → extract → chunk → embed → ChromaDB
+- **Answer** — question → retrieve → prompt → Ollama → answer
 
 Every stage has a policy hook. This profile registers **seven**, so every hook is enforced.
         """)
@@ -119,11 +116,8 @@ weaknesses here are known, documented, and reproducible.
 
 **The pipeline**
 
-```
-PDF  ->  extract  ->  chunk  ->  embed  ->  ChromaDB
-                                              |
-question  ->  retrieve  ->  prompt  ->  Ollama  ->  answer
-```
+- **Ingest** — document → extract → chunk → embed → ChromaDB
+- **Answer** — question → retrieve → prompt → Ollama → answer
 
 Every stage has a policy hook. This profile registers **none**, so every hook is a pass-through.
         """)
@@ -181,6 +175,3 @@ st.info(
 
 # The theme switch lives in the sidebar on every page, so an operator who lands on a theme they
 # cannot read never has to navigate somewhere else to fix it.
-with st.sidebar:
-    st.divider()
-    theme.render_theme_toggle()

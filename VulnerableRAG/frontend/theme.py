@@ -97,7 +97,12 @@ _PALETTES = {p.name: p for p in (DARK, LIGHT)}
 #: Short names because they are visible in the address bar. Nothing sensitive goes here -- a URL
 #: reaches browser history and server logs -- so this is display preferences only.
 PERSISTED_PREFS: dict[str, str] = {
-    "theme": "t",
+    # No "theme": the labs are always light, so persisting a choice nothing reads would put a
+    # promise in the address bar that the application cannot keep.
+    #
+    # The remaining four are no longer user-facing either -- Query options was removed -- but they
+    # stay persisted because they are still honoured when set, and dropping them would silently
+    # change the behaviour of any bookmark that carries them.
     "top_k": "k",
     "show_prompt": "sp",
     "show_raw": "sr",
@@ -150,6 +155,44 @@ def load_preferences() -> None:
         if raw in (None, ""):
             continue
         st.session_state[state_key] = _coerce(key, raw)
+
+
+#: The state key the Chat page keeps its server-side conversation id under, and the query parameter
+#: it is mirrored to. Named here rather than imported from the page, because every page has to carry
+#: the value and only one of them owns it.
+_CHAT_SESSION_KEY = "chat.session_id"
+_CHAT_SESSION_PARAM = "s"
+
+
+def carry_session() -> None:
+    """Keep the chat's session id in the URL on EVERY page, not just Chat.
+
+    THE DEFECT
+        The conversation id was mirrored into the URL by the Chat page alone. Streamlit's page
+        navigation drops the query string, so clicking "Upload Documents" produced a URL with no
+        ``s``; refreshing there -- or anywhere that was not Chat -- discarded session state with
+        nothing left to rebuild from, and returning to Chat silently opened a NEW conversation. The
+        transcript was still on the server and still being replayed into every prompt, which is the
+        worst version of this bug: the screen said the history was gone and the model disagreed.
+
+    THE FIX
+        Two directions, both needed, on every page:
+
+        * URL -> state, so a refresh on any page rejoins the conversation;
+        * state -> URL, so navigating to another page carries the id with it.
+
+        Session state survives navigation but not refresh; the URL survives refresh but not
+        navigation. Neither alone is enough, which is why fixing only one of them looked like it
+        worked right up until someone pressed F5 on the wrong page.
+    """
+    current = st.session_state.get(_CHAT_SESSION_KEY)
+    if not current:
+        from_url = st.query_params.get(_CHAT_SESSION_PARAM)
+        if from_url:
+            st.session_state[_CHAT_SESSION_KEY] = from_url
+            current = from_url
+    if current and st.query_params.get(_CHAT_SESSION_PARAM) != current:
+        st.query_params[_CHAT_SESSION_PARAM] = str(current)
 
 
 def remember(key: str, value: Any) -> None:
@@ -387,34 +430,21 @@ def apply(settings: Any) -> Palette:
     appears unstyled for a frame.
     """
     load_preferences()
-    palette = palette_for(str(preference("theme", "dark")))
+    carry_session()
+    # THE LABS ARE LIGHT. There is no runtime choice, and that is the fix.
+    #
+    # A light/dark toggle existed and was reported broken five separate times, always as "half
+    # light, half dark". The cause was never one selector: Streamlit compiles its base theme into
+    # every native widget, so a second theme means keeping a hand-written stylesheet in step with a
+    # compiled one across every widget and every Streamlit release. Each fix closed the gap for the
+    # widgets someone had thought of.
+    #
+    # Deleting the choice deletes the class of bug. The labs read as ordinary business chat
+    # applications, which is what they are pretending to be, so LIGHT is the honest default -- and
+    # it distinguishes them at a glance from the dark console that attacks them.
+    palette = LIGHT
     _sync_streamlit_base(palette)
     st.markdown(_css(palette), unsafe_allow_html=True)
     return palette
 
 
-def render_theme_toggle() -> None:
-    """The dark/light switch. Draw it inside a ``with st.sidebar:`` block.
-
-    Order matters here, and it is the whole reason this is a function rather than two lines at each
-    call site. The widget must be SEEDED BEFORE it is drawn, because Streamlit refuses writes to a
-    widget's key afterwards -- and a widget with a key ignores its ``value=`` argument once it holds
-    state, so seeding is the only way the stored preference reaches the switch at all.
-    """
-    current = str(preference(_PREF_KEY, "dark"))
-
-    # Seed first, draw second. Never the other way round.
-    if st.session_state.get(_SYNCED_KEY) != current:
-        st.session_state[_TOGGLE_KEY] = current != "light"
-        st.session_state[_SYNCED_KEY] = current
-
-    wants_dark = st.toggle("Dark theme", key=_TOGGLE_KEY, help="Remembered across a refresh.")
-
-    chosen = "dark" if wants_dark else "light"
-    if chosen != current:
-        # Writes `lab.theme`, which is NOT the widget's key -- see _TOGGLE_KEY.
-        remember(_PREF_KEY, chosen)
-        st.session_state[_SYNCED_KEY] = chosen
-        # Re-run so the stylesheet is rebuilt from the new palette; without it the switch appears
-        # to do nothing until the operator's next interaction.
-        st.rerun()

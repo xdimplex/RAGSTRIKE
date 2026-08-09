@@ -113,11 +113,8 @@ verdicts change when someone upgrades a model cannot support trend analysis.
 
 From **Phase 2**, the companion repository provides the targets:
 
-```bash
-git clone https://github.com/OWNER/vulnerable-rag.git
-cd vulnerable-rag
-docker compose -f docker/docker-compose.yml up -d
-```
+> Docker files are not shipped with this build. Run the three applications
+> directly, as described above.
 
 | Service | URL |
 |---|---|
