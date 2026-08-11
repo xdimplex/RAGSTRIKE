@@ -1,5 +1,14 @@
 # First-time installation
 
+> ### ⚠️ The virtual environments are NOT included
+>
+> This copy of the project ships **source only**. The three `.venv/` folders were removed before
+> export — they were 2.8 GB and 79,000 files between them, against roughly 6 MB of actual source.
+>
+> **You must create them.** Section 3 below does exactly that, and takes about five minutes on a
+> normal connection. Nothing else is missing: the code, the configs, the corpus and the databases
+> are all here.
+
 For a machine that has never run this project. If everything is already installed and you just want
 to start it, go to [02-START-EVERY-TIME.md](02-START-EVERY-TIME.md).
 

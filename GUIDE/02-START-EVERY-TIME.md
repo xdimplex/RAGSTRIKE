@@ -7,6 +7,10 @@ and knowing they are up.
 
 If this is a brand-new machine, do [01-INSTALLATION.md](01-INSTALLATION.md) first.
 
+> **Just copied this from an SSD or cloned it from GitHub?** The `.venv/` folders are not included.
+> Run [01-INSTALLATION.md](01-INSTALLATION.md) once, then come back here. A quick way to tell:
+> `ls RAGStrike/.venv` — if that fails, you need to install first.
+
 ---
 
 ## The short version
