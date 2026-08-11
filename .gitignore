@@ -101,3 +101,35 @@ secrets.yaml
 #   sample-corpus/     -- the demo documents, deliberately not pre-ingested
 #   configs/           -- thresholds and profiles are the experiment; they must be reviewable
 #   .streamlit/        -- pins the loopback bind address and the base theme
+
+# --------------------------------------------------------------------------------------------------
+# PRIVATE STUDY MATERIAL — never publish
+#
+# These are notes written for the author, not for anyone reading the repository: interview
+# preparation, a map of the codebase for answering questions quickly, and a demo script that quotes
+# real leaked output. They live OUTSIDE this repository (in ../private/), so in normal use git never
+# sees them.
+#
+# The patterns below are a safety net for the one case that actually happens: somebody copies a file
+# into the project folder to read it beside the code, forgets, and commits it. Ignoring by name costs
+# nothing and removes that possibility.
+# --------------------------------------------------------------------------------------------------
+INTERVIEW-QA.md
+INTERVIEW-Q&A.md
+PROJECT-FILE-GUIDE.md
+demo questions.md
+demo-questions.md
+private/
+deliverables/
+
+# Submission artefacts. Generated from tools/, and a repository is not where a compiled report
+# belongs -- it goes stale the moment the source changes.
+RAGStrike_Project_Report.*
+RAGStrike_Presentation.*
+*.pptx
+*.docx
+
+# Working material for the report and slides.
+screenshots/
+logos/
+tools/
